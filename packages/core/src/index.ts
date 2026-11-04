@@ -1,3 +1,4 @@
+export * from './adapter.js';
 export * from './address.js';
 export * from './amount.js';
 export * from './canonical.js';

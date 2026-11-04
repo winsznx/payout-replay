@@ -114,9 +114,26 @@ describe('reconcileObligation', () => {
     expect(result.exceptions.map((exception) => exception.type)).toEqual(['digest_mismatch']);
   });
 
+  it('should count one transaction once when an app attempt and a chain scan both report it', () => {
+    // #given the same finalized tx reported twice
+    const paid = paidEvm(evmLine.obligationId, EVM_CAROL, evmLine.amountBaseUnits);
+    // #when reconciled
+    const result = run([attempt(evmLine.obligationId, paid), attempt(evmLine.obligationId, paid, { source: 'chain_scan' })]);
+    // #then it is a single settlement
+    expect([statusOf(result, evmLine.obligationId), result.exceptions.length]).toEqual(['paid_verified', 0]);
+  });
+
+  it('should settle through a replacement transaction found by chain scan', () => {
+    const replaced: AttemptOutcome = { kind: 'finalized_failure', reason: 'evm_replaced', detail: 'nonce reused by another tx' };
+    const scanned = paidEvm(evmLine.obligationId, EVM_CAROL, evmLine.amountBaseUnits);
+    const result = run([attempt(evmLine.obligationId, replaced), attempt(evmLine.obligationId, scanned, { source: 'chain_scan' })]);
+    expect(statusOf(result, evmLine.obligationId)).toBe('paid_verified');
+  });
+
   it('should send a double payment to review with a duplicate_settlement exception', () => {
     const paid = paidEvm(evmLine.obligationId, EVM_CAROL, evmLine.amountBaseUnits);
-    const result = run([attempt(evmLine.obligationId, paid), attempt(evmLine.obligationId, paid)]);
+    const second: AttemptOutcome = paid.kind === 'finalized_success' ? { ...paid, evidence: { ...paid.evidence, txHash: '0xsecond' } } : paid;
+    const result = run([attempt(evmLine.obligationId, paid), attempt(evmLine.obligationId, second)]);
     expect([statusOf(result, evmLine.obligationId), result.exceptions.map((exception) => exception.type)]).toEqual(['needs_review', ['duplicate_settlement']]);
   });
 

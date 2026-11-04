@@ -1,7 +1,12 @@
 import { sameAddress } from './address.js';
 import type { AssetTotal, Environment, Obligation } from './types.js';
 
-export type AttemptSource = 'app' | 'imported';
+/**
+ * `app`: signed through Payout Replay. `imported`: a tx reference an operator
+ * supplied for an out-of-band payment. `chain_scan`: a settlement the adapter
+ * found on-chain by obligation ID (e.g. a replacement transaction).
+ */
+export type AttemptSource = 'app' | 'imported' | 'chain_scan';
 
 /** Where an attempt sits from the operator's point of view, before chain evidence is applied. */
 export type AttemptPhase = 'prepared' | 'signature_rejected' | 'submitted' | 'submission_unknown';
@@ -32,7 +37,9 @@ export type FailureReason =
   | 'evm_reverted'
   | 'native_extrinsic_failed'
   | 'native_mortality_expired'
-  | 'evm_nonce_consumed_without_execution';
+  | 'native_nonce_consumed_elsewhere'
+  | 'evm_nonce_consumed_without_execution'
+  | 'evm_replaced';
 
 /**
  * The adapter's verdict for one attempt. Adapters must return `unknown`
@@ -186,8 +193,13 @@ export function reconcileObligation(
   };
 
   const successes: { attempt: AttemptRecord; transfer: ObservedTransfer | undefined; evidence: ChainEvidence }[] = [];
+  const seenTx = new Set<string>();
   for (const attempt of broadcast) {
     if (attempt.outcome.kind !== 'finalized_success') continue;
+    // The same transaction can be reported by an app attempt and a chain scan.
+    const txKey = attempt.outcome.evidence.txHash.toLowerCase();
+    if (seenTx.has(txKey)) continue;
+    seenTx.add(txKey);
     successes.push({
       attempt,
       transfer: attributableTransfer(obligation, attempt.outcome.transfers),

@@ -26,5 +26,9 @@ export default function RunIndex() {
     const step = stepFor(status);
     router.replace(step === 'import' ? `/app/runs/new?run=${runId}` : `/app/runs/${runId}/${step}`);
   }, [status, runId, router]);
-  return <Skeleton rows={4} />;
+  return (
+    <div className="page">
+      <Skeleton rows={3} height={80} />
+    </div>
+  );
 }

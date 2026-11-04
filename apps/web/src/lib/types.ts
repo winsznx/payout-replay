@@ -93,6 +93,9 @@ export interface Partition {
   assetId: string;
   symbol: string;
   decimals: number;
+  totalBaseUnits: string;
+  verifiedBaseUnits: string;
+  outstandingBaseUnits: string;
   total: string;
   verified: string;
   outstanding: string;

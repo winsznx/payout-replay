@@ -213,12 +213,17 @@ try {
   if (rows.length !== 3 || rows.slice(1).some((row) => !row.includes(',paid_verified,'))) throw new Error(`unexpected export:\n${exported}`);
   writeFileSync(join(SHOTS, 'export.csv'), exported);
 
-  step('dark mode spot check');
-  await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
+  step('dashboard and mobile layout');
+  await page.goto(`${WEB_URL}/app`, { waitUntil: 'domcontentloaded' });
+  await waitForText('Lines verified paid');
+  await page.waitForFunction(() => !document.body.innerText.includes('—'), { timeout: 20_000 }).catch(() => undefined);
+  await capture('dashboard');
+  await page.setViewport({ width: 390, height: 844, isMobile: true });
   await page.goto(`${WEB_URL}${runPath}/live`, { waitUntil: 'domcontentloaded' });
   await waitForText('Where the money stands');
-  await clickText('Show proof');
-  await capture('settlement-dark');
+  await capture('settlement-mobile');
+  await page.goto(`${WEB_URL}/`, { waitUntil: 'domcontentloaded' });
+  await capture('landing-mobile');
 
   if (consoleErrors.length) throw new Error(`page errors:\n${consoleErrors.join('\n')}`);
   console.log('browser flow passed');

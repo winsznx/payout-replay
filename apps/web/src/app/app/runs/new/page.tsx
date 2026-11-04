@@ -4,7 +4,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { type DragEvent, Suspense, useState } from 'react';
 import useSWR, { mutate } from 'swr';
 
-import { Button, CopyText, Notice, PageHeader, Section, Table, td, th } from '@/components/ui';
+import { IconAlert, IconChain, IconCheck, IconFile, IconLayers, IconUpload, IconWallet } from '@/components/icons';
+import { Button, CopyText, IconTile, Notice, PageHead, TopBar } from '@/components/ui';
 import { apiPost, errorMessage, fetcher } from '@/lib/api';
 import { formatBaseUnits, groupDecimal } from '@/lib/format';
 import { useSession } from '@/lib/session';
@@ -14,9 +15,14 @@ const REQUIRED = ['line_id', 'environment', 'asset_id', 'destination', 'amount',
 const OPTIONAL = ['recipient_name', 'recipient_id', 'invoice_id', 'note', 'source_wallet'] as const;
 const MAX_BYTES = 5 * 1024 * 1024;
 
-const SAMPLE = `line_id,environment,asset_id,destination,amount,reference,recipient_name
-TASK-101,native,tPOT,5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty,1.5,TASK-101,Contributor A
-TASK-102,evm,0xYourTestTokenAddress,0x90F79bf6EB2c4f870365E785982E1f101E93b906,100,TASK-102,Contributor B`;
+const COLUMN_HELP: Record<(typeof REQUIRED)[number], string> = {
+  line_id: 'Unique per sheet, e.g. TASK-101',
+  environment: 'native or evm',
+  asset_id: 'tPOT, or the token contract address',
+  destination: 'SS58 for native, 0x address for EVM',
+  amount: 'Plain decimal, never rounded',
+  reference: 'Invoice, task or grant reference',
+};
 
 function headerRow(csv: string): string[] {
   const first = csv.replace(/^﻿/, '').split(/\r?\n/, 1)[0] ?? '';
@@ -41,10 +47,13 @@ function ImportScreen() {
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
 
-  const shownReport = report ?? existing?.latestImport?.report ?? null;
+  const shown = report ?? existing?.latestImport?.report ?? null;
   const headers = headerRow(csv);
   const unmatched = csv ? REQUIRED.filter((field) => !headers.includes(mapping[field] ?? field)) : [];
-  const locked = existing && !['draft', 'validated', 'awaiting_approval', 'approved'].includes(existing.run.status);
+  const locked = Boolean(existing && !['draft', 'validated', 'awaiting_approval', 'approved'].includes(existing.run.status));
+  const errors = shown?.issues.filter((issue) => issue.severity === 'error') ?? [];
+  const warnings = shown?.issues.filter((issue) => issue.severity === 'warning') ?? [];
+  const currentStep = !runId && !csv ? 0 : !csv && !shown ? 1 : !shown || !shown.ok ? 2 : 3;
 
   const loadFile = async (file: File) => {
     setError(null);
@@ -105,230 +114,299 @@ function ImportScreen() {
     }
   };
 
-  const errors = shownReport?.issues.filter((issue) => issue.severity === 'error') ?? [];
-  const warnings = shownReport?.issues.filter((issue) => issue.severity === 'warning') ?? [];
+  const steps = [
+    { title: 'Name the run', body: 'One run is one approved sheet.' },
+    { title: 'Add the CSV', body: 'Drop the file your team signed off.' },
+    { title: 'Validate every line', body: 'Addresses, decimals and payout wallets.' },
+    { title: 'Freeze for review', body: 'An immutable version with a fingerprint.' },
+  ];
 
   return (
-    <div className="max-w-6xl">
-      <PageHeader
-        title={existing ? `Import for ${existing.run.name}` : 'Import a payout sheet'}
-        description="Upload the approved spreadsheet as CSV. Nothing is frozen or paid until you review and approve it."
-      />
+    <>
+      <TopBar crumbs={[{ label: 'Payout runs', href: '/app' }, ...(existing ? [{ label: existing.run.name, href: `/app/runs/${existing.run.id}` }] : []), { label: 'Import' }]} />
+      <div className="page">
+        <PageHead
+          title={existing ? `Import for ${existing.run.name}` : 'Import a payout sheet'}
+          description="Upload the spreadsheet your team already approved. Nothing is frozen or paid until a reviewer approves the exact version."
+        />
 
-      {locked && (
-        <div className="mt-6">
-          <Notice tone="review" title="Payments have started for this run">
-            Its manifest is frozen and can no longer change. Start a new run for different lines.
-          </Notice>
-        </div>
-      )}
+        <div className="split">
+          <div className="stack">
+            {locked && (
+              <Notice tone="review" title="Payments have started for this run">
+                Its manifest is frozen and can’t change. Start a new run for different lines.
+              </Notice>
+            )}
 
-      {!locked && (
-        <Section title="Upload" description="Required columns: line_id, environment, asset_id, destination, amount, reference.">
-          {!existing && (
-            <label className="mb-4 block max-w-md">
-              <span className="text-[14px] text-ink-2">Run name</span>
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="November contributor payouts"
-                className="mt-1 w-full rounded-[5px] border border-rule-strong bg-surface px-3 py-2"
-              />
-            </label>
-          )}
-          <div
-            onDragOver={(event) => {
-              event.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={onDrop}
-            className={`flex flex-col items-start gap-3 border border-dashed px-5 py-6 ${dragging ? 'border-accent bg-accent-wash' : 'border-rule-strong bg-surface'}`}
-          >
-            <p className="text-[15px] text-ink">{fileName ? `Loaded ${fileName}` : 'Drop a CSV file here, or choose one.'}</p>
-            <div className="flex flex-wrap gap-2">
-              <label className="inline-flex cursor-pointer items-center rounded-[5px] border border-rule-strong bg-surface px-3 py-1.5 text-[14px] font-medium hover:bg-sunken">
-                Choose file
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  className="sr-only"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void loadFile(file);
-                  }}
-                />
-              </label>
-              <Button variant="ghost" onClick={() => { setCsv(SAMPLE); setFileName('sample.csv'); }}>
-                Load the column template
-              </Button>
-            </div>
-          </div>
-
-          {csv && (
-            <details className="mt-3" open={unmatched.length > 0}>
-              <summary className="cursor-pointer text-[14px] text-ink-2">Column mapping {unmatched.length > 0 ? `(${unmatched.length} required column${unmatched.length > 1 ? 's' : ''} not found)` : '(all required columns found)'}</summary>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {[...REQUIRED, ...OPTIONAL].map((field) => (
-                  <label key={field} className="flex items-center justify-between gap-2 text-[14px]">
-                    <span className={REQUIRED.includes(field as (typeof REQUIRED)[number]) ? 'text-ink' : 'text-ink-3'}>{field}</span>
-                    <select
-                      value={mapping[field] ?? (headers.includes(field) ? field : '')}
-                      onChange={(event) => setMapping({ ...mapping, [field]: event.target.value })}
-                      className="w-44 rounded border border-rule bg-surface px-2 py-1"
-                    >
-                      <option value="">Not in file</option>
-                      {headers.map((header) => (
-                        <option key={header} value={header}>
-                          {header}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ))}
-              </div>
-            </details>
-          )}
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button variant="primary" onClick={() => void validate()} busy={busy === 'validate'} disabled={!csv || unmatched.length > 0}>
-              Validate sheet
-            </Button>
-          </div>
-        </Section>
-      )}
-
-      {error && (
-        <div className="mt-4">
-          <Notice tone="failed">{error}</Notice>
-        </div>
-      )}
-
-      {shownReport && (
-        <>
-          <Section
-            title={shownReport.ok ? `${shownReport.lines.length} lines ready to freeze` : `${errors.length} problem${errors.length === 1 ? '' : 's'} to fix before freezing`}
-            description={
+            {!locked && (
               <>
-                File checksum <CopyText value={`sha256:${shownReport.fileSha256}`} display={`sha256:${shownReport.fileSha256.slice(0, 16)}…`} />
+                {!existing && (
+                  <label className="field">
+                    <span>Run name</span>
+                    <input value={name} onChange={(event) => setName(event.target.value)} placeholder="November contributor payouts" className="input" />
+                  </label>
+                )}
+
+                <div
+                  className={`dropzone ${dragging ? 'dragging' : ''}`}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setDragging(true);
+                  }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={onDrop}
+                >
+                  <span className="icon-tile">{fileName ? <IconFile size={20} /> : <IconUpload size={20} />}</span>
+                  <h3>{fileName ? `Loaded ${fileName}` : 'Drop your payout CSV here'}</h3>
+                  <p>{fileName ? `${headers.length} columns found. Validate it to check every line.` : 'UTF-8 CSV with a header row, up to 500 lines and 5 MB.'}</p>
+                  <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
+                    {fileName ? 'Choose another file' : 'Choose file'}
+                    <input
+                      type="file"
+                      accept=".csv,text/csv"
+                      className="sr-only"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) void loadFile(file);
+                      }}
+                    />
+                  </label>
+                </div>
+
+                {csv && (
+                  <div className="card">
+                    <div className="module-head" style={{ marginBottom: 10 }}>
+                      <h2 className="card-title">Column mapping</h2>
+                      <span style={{ fontSize: 13, color: unmatched.length ? 'var(--failed)' : 'var(--settled)' }}>
+                        {unmatched.length ? `${unmatched.length} required column${unmatched.length > 1 ? 's' : ''} not found` : 'All required columns found'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+                      {[...REQUIRED, ...OPTIONAL].map((field) => (
+                        <label key={field} className="field">
+                          <span>
+                            {field}
+                            {REQUIRED.includes(field as (typeof REQUIRED)[number]) ? '' : ' (optional)'}
+                          </span>
+                          <select className="select" value={mapping[field] ?? (headers.includes(field) ? field : '')} onChange={(event) => setMapping({ ...mapping, [field]: event.target.value })}>
+                            <option value="">Not in file</option>
+                            {headers.map((header) => (
+                              <option key={header} value={header}>
+                                {header}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <Button variant="primary" onClick={() => void validate()} busy={busy === 'validate'} disabled={!csv || unmatched.length > 0}>
+                    <IconCheck size={16} />
+                    Validate sheet
+                  </Button>
+                </div>
               </>
-            }
-          >
-            {errors.length > 0 && (
-              <Table label="Validation errors">
-                <thead>
-                  <tr>
-                    <th className={th}>CSV line</th>
-                    <th className={th}>Line ID</th>
-                    <th className={th}>Column</th>
-                    <th className={th}>Problem</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {errors.map((issue, index) => (
-                    <tr key={`${issue.code}-${index}`}>
-                      <td className={`${td} num`}>{issue.line ?? 'file'}</td>
-                      <td className={td}>{issue.lineId ?? ''}</td>
-                      <td className={td}>{issue.field ?? ''}</td>
-                      <td className={`${td} text-failed`}>{issue.message}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
             )}
-            {warnings.length > 0 && (
-              <ul className="mt-3 space-y-1 text-[14px] text-review">
-                {warnings.map((issue, index) => (
-                  <li key={`${issue.code}-${index}`}>
-                    {issue.line ? `Line ${issue.line}: ` : ''}
-                    {issue.message}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Section>
 
-          {shownReport.lines.length > 0 && (
-            <Section title="Lines as they will be frozen" description="Full destination addresses, exactly as they will be paid.">
-              <Table label="Validated lines">
-                <thead>
-                  <tr>
-                    <th className={th}>Line ID</th>
-                    <th className={th}>Recipient</th>
-                    <th className={th}>Environment</th>
-                    <th className={th}>Destination</th>
-                    <th className={`${th} text-right`}>Amount</th>
-                    <th className={th}>Reference</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {shownReport.lines.map((line) => {
-                    const total = shownReport.totals.find((item) => item.environment === line.environment && item.assetId === line.assetId);
-                    return (
-                      <tr key={line.lineId}>
-                        <td className={`${td} font-medium`}>{line.lineId}</td>
-                        <td className={td}>{line.recipientName ?? ''}</td>
-                        <td className={td}>{line.environment === 'evm' ? 'EVM' : 'Native'}</td>
-                        <td className={`${td} max-w-[28ch]`}>
-                          <span className="hash">{line.destination}</span>
-                        </td>
-                        <td className={`${td} num text-right whitespace-nowrap`}>
-                          {groupDecimal(line.amount)} {total?.symbol}
-                        </td>
-                        <td className={td}>{line.reference}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </Table>
-              <div className="mt-4 grid gap-6 sm:grid-cols-2">
-                <div>
-                  <h3 className="mb-2 text-[14px] font-medium text-ink-2">Totals by asset</h3>
-                  <ul className="space-y-1 text-[14px]">
-                    {shownReport.totals.map((total) => (
-                      <li key={total.assetId} className="flex justify-between gap-4 border-b border-rule py-1">
+            {error && <Notice tone="failed">{error}</Notice>}
+
+            {shown && (
+              <>
+                <div className="tiles" style={{ marginBottom: 0 }}>
+                  <div className="inset">
+                    <IconTile tone={shown.ok ? 'settled' : undefined}>
+                      <IconCheck size={18} />
+                    </IconTile>
+                    <div className="inset-body">
+                      <span>{shown.ok ? 'Validation passed' : 'Valid lines'}</span>
+                      <strong className="num" style={shown.ok ? { fontSize: 16 } : undefined}>
+                        {shown.ok ? `${shown.lines.length} lines ready to freeze` : shown.lines.length}
+                      </strong>
+                    </div>
+                  </div>
+                  <div className="inset">
+                    <IconTile tone={errors.length ? 'failed' : undefined}>
+                      <IconAlert size={18} />
+                    </IconTile>
+                    <div className="inset-body">
+                      <span>Problems to fix</span>
+                      <strong className="num">{errors.length}</strong>
+                    </div>
+                  </div>
+                  <div className="inset">
+                    <IconTile>
+                      <IconFile size={18} />
+                    </IconTile>
+                    <div className="inset-body">
+                      <span>File checksum</span>
+                      <CopyText value={`sha256:${shown.fileSha256}`} display={`${shown.fileSha256.slice(0, 12)}…`} />
+                    </div>
+                  </div>
+                </div>
+
+                {errors.length > 0 && (
+                  <div className="queue">
+                    {errors.map((issue, index) => (
+                      <div className="queue-row" key={`${issue.code}-${index}`}>
+                        <IconTile tone="failed">
+                          <IconAlert size={18} />
+                        </IconTile>
+                        <div className="queue-main">
+                          <small>
+                            {issue.line ? `CSV line ${issue.line}` : 'Whole file'}
+                            {issue.field ? ` · ${issue.field}` : ''}
+                          </small>
+                          <h3 style={{ whiteSpace: 'normal' }}>{issue.lineId ?? issue.code.toLowerCase().replace(/_/g, ' ')}</h3>
+                          <p>{issue.message}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {warnings.length > 0 && (
+                  <Notice tone="review" title={`${warnings.length} warning${warnings.length === 1 ? '' : 's'}`}>
+                    {warnings.map((issue) => issue.message).join(' ')}
+                  </Notice>
+                )}
+
+                {shown.lines.length > 0 && (
+                  <div className="table-card">
+                    <div className="table-scroll">
+                      <table className="table" aria-label="Lines as they will be frozen">
+                        <thead>
+                          <tr>
+                            <th>Line</th>
+                            <th>Destination, exactly as it will be paid</th>
+                            <th className="right">Amount</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {shown.lines.map((line) => {
+                            const total = shown.totals.find((item) => item.environment === line.environment && item.assetId === line.assetId);
+                            return (
+                              <tr key={line.lineId}>
+                                <td>
+                                  <strong style={{ fontWeight: 600 }}>{line.lineId}</strong>
+                                  <span style={{ display: 'block', fontSize: 12.5, color: 'var(--ink-3)' }}>
+                                    {line.recipientName ?? line.reference} · {line.environment === 'evm' ? 'EVM' : 'Native'}
+                                  </span>
+                                </td>
+                                <td style={{ maxWidth: 360 }}>
+                                  <span className="mono">{line.destination}</span>
+                                </td>
+                                <td className="right num" style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>
+                                  {groupDecimal(line.amount)} {total?.symbol}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {shown.lines.length > 0 && (
+                  <div className="modules" style={{ marginBottom: 0 }}>
+                    <div className="inset-list">
+                      {shown.totals.map((total) => (
+                        <div className="inset" key={total.assetId}>
+                          <IconTile>{total.environment === 'evm' ? <IconLayers size={18} /> : <IconChain size={18} />}</IconTile>
+                          <div className="inset-body">
+                            <span>
+                              Total {total.symbol}, {total.count} line{total.count === 1 ? '' : 's'}
+                            </span>
+                            <strong className="num">{formatBaseUnits(total.amountBaseUnits, total.decimals)}</strong>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="inset-list">
+                      {shown.signers.map((signer) => (
+                        <div className="inset" key={signer.environment}>
+                          <IconTile>
+                            <IconWallet size={18} />
+                          </IconTile>
+                          <div className="inset-body">
+                            <span>
+                              Signs {signer.lineCount} {signer.environment === 'evm' ? 'EVM' : 'native'} line{signer.lineCount === 1 ? '' : 's'}
+                            </span>
+                            <p className="mono">{signer.payer}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {shown.ok && runId && !locked && (
+                  <div className="card-dark">
+                    <p style={{ color: '#fff', fontSize: 17, fontWeight: 600 }}>Freeze version for review</p>
+                    <p style={{ marginTop: 6 }}>
+                      Freezing creates an immutable version with a SHA-256 fingerprint. Any later change creates a new version that needs approval again.
+                    </p>
+                    {shown.requiresAcknowledgement && (
+                      <label style={{ display: 'flex', gap: 10, marginTop: 14, fontSize: 13.5, color: 'rgba(255,255,255,.85)' }}>
+                        <input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} />
                         <span>
-                          {total.symbol} <span className="text-ink-3">({total.count} lines)</span>
+                          I checked {shown.duplicates.map((group) => group.lineIds.join(' and ')).join('; ')}. They pay the same amount to the same address and each will be
+                          paid.
                         </span>
-                        <span className="num">{formatBaseUnits(total.amountBaseUnits, total.decimals)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="mb-2 text-[14px] font-medium text-ink-2">Who has to sign</h3>
-                  <ul className="space-y-1 text-[14px]">
-                    {shownReport.signers.map((signer) => (
-                      <li key={signer.environment} className="border-b border-rule py-1">
-                        {signer.environment === 'evm' ? 'EVM payout wallet' : 'Native payout wallet'} for {signer.lineCount} line{signer.lineCount === 1 ? '' : 's'}
-                        <span className="hash block text-ink-2">{signer.payer}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="mt-2 text-[13px] text-ink-3">Network fees are estimated per transfer on the execution screen, from live chain data.</p>
-                </div>
-              </div>
-            </Section>
-          )}
+                      </label>
+                    )}
+                    <Button
+                      variant="white"
+                      block
+                      className="mt-4"
+                      busy={busy === 'freeze'}
+                      disabled={shown.requiresAcknowledgement && !acknowledged}
+                      onClick={() => void freeze()}
+                      style={{ marginTop: 16 }}
+                    >
+                      Freeze version for review
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
 
-          {shownReport.ok && runId && !locked && (
-            <Section title="Freeze for approval" description="Freezing creates an immutable version with a SHA-256 fingerprint. Any later change makes a new version that needs approval again.">
-              {shownReport.requiresAcknowledgement && (
-                <label className="mb-3 flex items-start gap-2 text-[14px]">
-                  <input type="checkbox" className="mt-1" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} />
-                  <span>
-                    I checked the lines that pay the same amount to the same address ({shownReport.duplicates.map((group) => group.lineIds.join(' and ')).join('; ')}). They are separate obligations and each will be paid.
-                  </span>
-                </label>
-              )}
-              <Button variant="primary" onClick={() => void freeze()} busy={busy === 'freeze'} disabled={shownReport.requiresAcknowledgement && !acknowledged}>
-                Freeze version for review
-              </Button>
-            </Section>
-          )}
-        </>
-      )}
-    </div>
+          <aside className="stack">
+            <div className="stepper" aria-label="Import steps">
+              {steps.map((step, index) => (
+                <div key={step.title} className={`step ${index === currentStep ? 'active' : index < currentStep ? 'done' : ''}`}>
+                  <span className="step-index">{index < currentStep ? <IconCheck size={16} strokeWidth={2.2} /> : String(index + 1).padStart(2, '0')}</span>
+                  <div>
+                    <strong>{step.title}</strong>
+                    <p>{step.body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="card">
+              <h2 className="card-title">Required columns</h2>
+              <dl className="kv" style={{ marginTop: 12 }}>
+                {REQUIRED.map((field) => (
+                  <div key={field} style={{ display: 'contents' }}>
+                    <dt className="mono" style={{ color: 'var(--ink)' }}>
+                      {field}
+                    </dt>
+                    <dd style={{ color: 'var(--ink-2)' }}>{COLUMN_HELP[field]}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="card-desc" style={{ marginTop: 12 }}>
+                Optional: recipient_name, recipient_id, invoice_id, note, source_wallet. Other columns are ignored and listed.
+              </p>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </>
   );
 }
 

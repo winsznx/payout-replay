@@ -2,83 +2,80 @@
 
 import { type FormEvent, useState } from 'react';
 
-import { Button, CopyText, Notice, PageHeader, Section, StatusMark, Table, TickTrail, td, th } from '@/components/ui';
+import { IconChain, IconExternal, IconLayers, IconRefresh } from '@/components/icons';
+import { Button, CopyText, IconTile, KeyValue, Notice, PageHead, STATUS, Skeleton, StatTile, StatusPill, Trail } from '@/components/ui';
 import { apiPost, errorMessage } from '@/lib/api';
 import { dateTime, groupDecimal, timeAgo } from '@/lib/format';
 import { useRun } from '@/lib/run-context';
 import type { AttemptView, LineView } from '@/lib/types';
 
-const OUTCOME_LABEL: Record<string, string> = {
+const OUTCOME: Record<string, string> = {
   not_broadcast: 'Not broadcast',
   pending: 'Waiting for inclusion',
-  included: 'In a block, not final',
+  included: 'In a block, not final yet',
   finalized_success: 'Final, succeeded',
   finalized_failure: 'Final, failed',
   unknown: 'Outcome unknown',
 };
 
+const SOURCE: Record<AttemptView['source'], string> = {
+  app: 'Signed in Payout Replay',
+  imported: 'Attached transaction',
+  chain_scan: 'Found on-chain by obligation ID',
+};
+
 function AttemptEvidence({ attempt }: { attempt: AttemptView }) {
   const outcome = attempt.outcome;
   const detail = 'detail' in outcome ? outcome.detail : null;
+  const tone = outcome.kind === 'finalized_success' ? 'settled' : outcome.kind === 'finalized_failure' ? 'failed' : outcome.kind === 'unknown' ? 'review' : 'waiting';
   return (
-    <div className="border-l-2 border-rule-strong py-1 pl-3 text-[13px]">
-      <p className="text-ink">
-        Attempt {attempt.attemptNumber}
-        {attempt.source === 'imported' ? ' (imported reference)' : attempt.source === 'chain_scan' ? ' (found on-chain by obligation ID)' : ''}:{' '}
-        <span className="font-medium">{OUTCOME_LABEL[outcome.kind] ?? outcome.kind}</span>
-        {detail ? <span className="text-ink-2">. {detail}</span> : null}
-      </p>
-      <dl className="mt-1 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-0.5 text-ink-2">
-        {attempt.txHash && (
-          <>
-            <dt className="text-ink-3">Transaction</dt>
-            <dd className="min-w-0">
-              <CopyText value={attempt.txHash} />
-              {attempt.explorerUrl && (
-                <a href={attempt.explorerUrl} target="_blank" rel="noreferrer" className="ml-2 text-accent underline">
-                  Explorer
-                </a>
-              )}
-            </dd>
-          </>
-        )}
-        {attempt.blockNumber && (
-          <>
-            <dt className="text-ink-3">Block</dt>
-            <dd className="min-w-0">
-              <span className="num">#{attempt.blockNumber}</span> <span className="hash">{attempt.blockHash}</span>
-            </dd>
-          </>
-        )}
-        {attempt.extrinsicIndex !== null && (
-          <>
-            <dt className="text-ink-3">Extrinsic index</dt>
-            <dd className="num">{attempt.extrinsicIndex}</dd>
-          </>
-        )}
-        {attempt.logIndex !== null && (
-          <>
-            <dt className="text-ink-3">Log index</dt>
-            <dd className="num">{attempt.logIndex}</dd>
-          </>
-        )}
-        {attempt.nonce !== null && (
-          <>
-            <dt className="text-ink-3">Nonce</dt>
-            <dd className="num">{attempt.nonce}</dd>
-          </>
-        )}
-        <dt className="text-ink-3">Observed</dt>
-        <dd>
-          {attempt.observedAt ? `${dateTime(attempt.observedAt)} via ${attempt.provider ?? 'RPC'}` : 'not yet'}
-          {attempt.finalized ? ', finalized' : ''}
-        </dd>
-      </dl>
+    <div className="inset" style={{ alignItems: 'flex-start', background: '#fff' }}>
+      <span className={`pill tone-${tone}`} style={{ flexShrink: 0 }}>
+        #{attempt.attemptNumber}
+      </span>
+      <div className="inset-body">
+        <span>{SOURCE[attempt.source]}</span>
+        <strong style={{ fontSize: 15 }}>{OUTCOME[outcome.kind] ?? outcome.kind}</strong>
+        {detail && <p>{detail}</p>}
+        <div style={{ marginTop: 10 }}>
+          <KeyValue
+            items={[
+              ...(attempt.txHash
+                ? [
+                    {
+                      label: 'Transaction',
+                      value: (
+                        <>
+                          <CopyText value={attempt.txHash} />
+                          {attempt.explorerUrl && (
+                            <a href={attempt.explorerUrl} target="_blank" rel="noreferrer" style={{ marginLeft: 8, color: 'var(--accent)' }}>
+                              Explorer <IconExternal size={13} style={{ verticalAlign: '-2px' }} />
+                            </a>
+                          )}
+                        </>
+                      ),
+                    },
+                  ]
+                : []),
+              ...(attempt.blockNumber
+                ? [{ label: 'Block', value: <span><span className="num">#{attempt.blockNumber}</span> <span className="mono">{attempt.blockHash}</span></span> }]
+                : []),
+              ...(attempt.extrinsicIndex !== null ? [{ label: 'Extrinsic index', value: <span className="num">{attempt.extrinsicIndex}</span> }] : []),
+              ...(attempt.logIndex !== null ? [{ label: 'Log index', value: <span className="num">{attempt.logIndex}</span> }] : []),
+              ...(attempt.nonce !== null ? [{ label: 'Nonce', value: <span className="num">{attempt.nonce}</span> }] : []),
+              {
+                label: 'Observed',
+                value: attempt.observedAt ? `${dateTime(attempt.observedAt)} via ${attempt.provider ?? 'RPC'}${attempt.finalized ? ', finalised' : ''}` : 'Not yet',
+              },
+            ]}
+          />
+        </div>
+      </div>
     </div>
   );
 }
 
-function ImportTransaction({ runId, line, onDone }: { runId: string; line: LineView; onDone(): void }) {
+function AttachTransaction({ runId, line, onDone }: { runId: string; line: LineView; onDone(): void }) {
   const [txHash, setTxHash] = useState('');
   const [blockHash, setBlockHash] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -99,39 +96,24 @@ function ImportTransaction({ runId, line, onDone }: { runId: string; line: LineV
     }
   };
   return (
-    <form onSubmit={(event) => void submit(event)} className="mt-3 space-y-2">
-      <p className="text-[13px] text-ink-3">Paid outside this app? Attach the transaction. It counts only after the chain verifies payer, recipient, asset and amount.</p>
-      <div className="flex flex-wrap gap-2">
-        <input
-          required
-          pattern="0x[0-9a-fA-F]{64}"
-          value={txHash}
-          onChange={(event) => setTxHash(event.target.value.trim())}
-          placeholder="Transaction hash"
-          className="w-[34ch] rounded border border-rule-strong bg-surface px-2 py-1 font-mono text-[13px]"
-          aria-label="Transaction hash"
-        />
+    <form onSubmit={(event) => void submit(event)} className="card" style={{ padding: 16 }}>
+      <p className="card-title" style={{ fontSize: 14 }}>Paid outside Payout Replay?</p>
+      <p className="card-desc">Attach the transaction. It counts only after the chain confirms payer, recipient, asset and exact amount.</p>
+      <div className="stack" style={{ gap: 8, marginTop: 10 }}>
+        <input required pattern="0x[0-9a-fA-F]{64}" value={txHash} onChange={(event) => setTxHash(event.target.value.trim())} placeholder="Transaction hash" aria-label="Transaction hash" className="input mono" />
         {line.environment === 'native' && (
-          <input
-            required
-            pattern="0x[0-9a-fA-F]{64}"
-            value={blockHash}
-            onChange={(event) => setBlockHash(event.target.value.trim())}
-            placeholder="Block hash it was included in"
-            className="w-[34ch] rounded border border-rule-strong bg-surface px-2 py-1 font-mono text-[13px]"
-            aria-label="Block hash"
-          />
+          <input required pattern="0x[0-9a-fA-F]{64}" value={blockHash} onChange={(event) => setBlockHash(event.target.value.trim())} placeholder="Block hash it was included in" aria-label="Block hash" className="input mono" />
         )}
-        <Button type="submit" busy={busy}>
+        <Button type="submit" variant="secondary" busy={busy}>
           Attach transaction
         </Button>
+        {error && <Notice tone="failed">{error}</Notice>}
       </div>
-      {error && <p className="text-[13px] text-failed">{error}</p>}
     </form>
   );
 }
 
-function ManualResolve({ runId, line, onDone }: { runId: string; line: LineView; onDone(): void }) {
+function ResolveManually({ runId, line, onDone }: { runId: string; line: LineView; onDone(): void }) {
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -149,32 +131,86 @@ function ManualResolve({ runId, line, onDone }: { runId: string; line: LineView;
     }
   };
   return (
-    <form onSubmit={(event) => void submit(event)} className="mt-3 space-y-2">
-      <p className="text-[13px] text-ink-3">Owners can close a line by hand. It is recorded as resolved manually, never as paid, and never authorises a payment.</p>
-      <div className="flex flex-wrap gap-2">
-        <input
-          required
-          minLength={10}
-          value={reason}
-          onChange={(event) => setReason(event.target.value)}
-          placeholder="What happened and where the proof is"
-          className="w-[46ch] rounded border border-rule-strong bg-surface px-2 py-1 text-[13px]"
-          aria-label="Resolution reason"
-        />
+    <form onSubmit={(event) => void submit(event)} className="card" style={{ padding: 16 }}>
+      <p className="card-title" style={{ fontSize: 14 }}>Close this line by hand</p>
+      <p className="card-desc">Recorded as resolved manually, never as paid, and never used to approve a payment.</p>
+      <div className="stack" style={{ gap: 8, marginTop: 10 }}>
+        <input required minLength={10} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="What happened and where the proof is" aria-label="Resolution reason" className="input" />
         <Button type="submit" variant="danger" busy={busy}>
           Resolve manually
         </Button>
+        {error && <Notice tone="failed">{error}</Notice>}
       </div>
-      {error && <p className="text-[13px] text-failed">{error}</p>}
     </form>
   );
 }
 
-export default function LivePage() {
+function LineCard({ line, runId, canImport, canResolve, onChange }: { line: LineView; runId: string; canImport: boolean; canResolve: boolean; onChange(): void }) {
+  const [open, setOpen] = useState(false);
+  const tone = STATUS[line.status].tone;
+  const unresolved = !['paid_verified', 'manually_resolved'].includes(line.status);
+  return (
+    <div className="card" style={{ padding: 0, overflow: 'hidden', background: open ? 'var(--panel)' : '#fff' }}>
+      <div className="queue-row" style={{ border: 0, borderRadius: 0, background: 'transparent' }}>
+        <IconTile tone={tone}>{line.environment === 'evm' ? <IconLayers size={18} /> : <IconChain size={18} />}</IconTile>
+        <div className="queue-main">
+          <small>{line.recipientName ?? line.reference}</small>
+          <h3>{line.lineId}</h3>
+          <p style={{ overflowWrap: 'anywhere' }}>{line.explanation}</p>
+          {line.exceptions.map((exception, index) => (
+            <p key={`${exception.type}-${index}`} style={{ color: exception.severity === 'critical' ? 'var(--failed)' : 'var(--review)' }}>
+              {exception.message}
+            </p>
+          ))}
+        </div>
+        <div className="queue-side">
+          <span className="amount num">
+            {groupDecimal(line.amount)}
+            <small>{line.symbol}</small>
+          </span>
+          <Trail line={line} />
+          <StatusPill status={line.status} />
+          <Button variant="soft" size="sm" onClick={() => setOpen(!open)} aria-expanded={open}>
+            {open ? 'Hide proof' : 'Show proof'}
+          </Button>
+        </div>
+      </div>
+      {open && (
+        <div style={{ padding: '4px 16px 18px', display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
+          <div className="stack" style={{ gap: 12 }}>
+            <div className="card" style={{ padding: 16 }}>
+              <Trail line={line} labels />
+              <div style={{ marginTop: 14 }}>
+                <KeyValue
+                  items={[
+                    { label: 'Obligation ID', value: <CopyText value={line.obligationId} /> },
+                    { label: 'Destination', value: <CopyText value={line.destination} /> },
+                    { label: 'Payer', value: <CopyText value={line.payer} /> },
+                    { label: 'Base units', value: <span className="num">{line.amountBaseUnits}</span> },
+                  ]}
+                />
+              </div>
+            </div>
+            {unresolved && canImport && <AttachTransaction runId={runId} line={line} onDone={onChange} />}
+            {unresolved && canResolve && line.status !== 'approved_unattempted' && <ResolveManually runId={runId} line={line} onDone={onChange} />}
+          </div>
+          <div className="stack" style={{ gap: 10 }}>
+            {line.attempts.length === 0 ? (
+              <p style={{ color: 'var(--ink-3)', fontSize: 13.5 }}>No attempts yet.</p>
+            ) : (
+              line.attempts.map((attempt) => <AttemptEvidence key={attempt.id} attempt={attempt} />)
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function SettlementPage() {
   const { runId, detail, lines, refresh } = useRun();
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState<string | null>(null);
-  const [open, setOpen] = useState<string | null>(null);
   const summary = detail?.summary;
 
   const checkNow = async () => {
@@ -191,150 +227,69 @@ export default function LivePage() {
   };
 
   return (
-    <div className="max-w-7xl">
-      <PageHeader
+    <div className="page">
+      <PageHead
         title="Settlement"
-        description={`What the chain says about every approved line. Last verified ${timeAgo(detail?.run.lastReconciledAt)}.`}
+        description={`What the chain says about every approved line. Last checked ${timeAgo(detail?.run.lastReconciledAt)}.`}
         actions={
-          <Button onClick={() => void checkNow()} busy={checking}>
+          <Button variant="primary" onClick={() => void checkNow()} busy={checking}>
+            <IconRefresh size={16} />
             Check the chain now
           </Button>
         }
       />
       {checkError && (
-        <div className="mt-4">
+        <div style={{ marginBottom: 16 }}>
           <Notice tone="failed" title="Verification unavailable">
-            {checkError}. Pending lines keep their last known state; nothing is assumed paid or failed.
+            {checkError}. Lines keep their last known state; nothing is assumed paid or failed.
           </Notice>
         </div>
       )}
 
       {summary && (
-        <Section title="Where the money stands">
-          <div className="grid gap-4 md:grid-cols-2">
+        <>
+          <h2 className="section-title" style={{ marginTop: 0 }}>
+            Where the money stands <span>Each asset on its own</span>
+          </h2>
+          <div className="tiles">
             {summary.partition.map((part) => (
-              <div key={part.assetId} className="border border-rule bg-surface px-4 py-3">
-                <p className="text-[14px] text-ink-2">
-                  {part.symbol} <span className="text-ink-3">({part.environment === 'evm' ? 'EVM' : 'native'})</span>
-                </p>
-                <dl className="mt-2 grid grid-cols-[1fr_auto] gap-y-1 text-[15px]">
-                  <dt className="text-ink-2">Approved</dt>
-                  <dd className="num text-right">{groupDecimal(part.total)}</dd>
-                  <dt className="text-settled">Verified paid</dt>
-                  <dd className="num text-right text-settled">{groupDecimal(part.verified)}</dd>
-                  <dt className="font-medium">Outstanding</dt>
-                  <dd className="num text-right font-semibold">{groupDecimal(part.outstanding)}</dd>
-                </dl>
-              </div>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      <Section title="Lines">
-        <Table label="Settlement status by line">
-          <thead>
-            <tr>
-              <th className={th}>Line</th>
-              <th className={`${th} text-right`}>Amount</th>
-              <th className={th}>Status</th>
-              <th className={th}>Trail</th>
-              <th className={th}>Why</th>
-              <th className={th}>
-                <span className="sr-only">Details</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {(lines ?? []).map((line) => (
-              <LineRow
-                key={line.obligationId}
-                line={line}
-                runId={runId}
-                open={open === line.obligationId}
-                onToggle={() => setOpen(open === line.obligationId ? null : line.obligationId)}
-                canResolve={detail?.role === 'owner'}
-                canImport={detail?.role === 'owner' || detail?.role === 'operator'}
-                onChange={() => void refresh()}
+              <StatTile
+                key={part.assetId}
+                icon={part.environment === 'evm' ? <IconLayers size={20} /> : <IconChain size={20} />}
+                tone={part.outstanding === '0' ? 'settled' : undefined}
+                label={`${part.symbol} outstanding`}
+                value={groupDecimal(part.outstanding)}
+                sub={{ tone: 'settled', label: `Verified paid of ${groupDecimal(part.total)}`, value: groupDecimal(part.verified) }}
               />
             ))}
-          </tbody>
-        </Table>
-      </Section>
-    </div>
-  );
-}
-
-function LineRow({
-  line,
-  runId,
-  open,
-  onToggle,
-  canResolve,
-  canImport,
-  onChange,
-}: {
-  line: LineView;
-  runId: string;
-  open: boolean;
-  onToggle(): void;
-  canResolve: boolean;
-  canImport: boolean;
-  onChange(): void;
-}) {
-  const unresolved = !['paid_verified', 'manually_resolved'].includes(line.status);
-  return (
-    <>
-      <tr className={open ? 'bg-sunken' : undefined}>
-        <td className={td}>
-          <span className="font-medium">{line.lineId}</span>
-          <span className="block text-[13px] text-ink-3">{line.recipientName ?? line.reference}</span>
-        </td>
-        <td className={`${td} num text-right whitespace-nowrap`}>
-          {groupDecimal(line.amount)} {line.symbol}
-        </td>
-        <td className={td}>
-          <StatusMark status={line.status} />
-        </td>
-        <td className={td}>
-          <TickTrail line={line} compact />
-        </td>
-        <td className={`${td} max-w-[44ch] text-[13px] text-ink-2 [overflow-wrap:anywhere]`}>
-          {line.explanation}
-          {line.exceptions.map((exception, index) => (
-            <span key={`${exception.type}-${index}`} className={`block ${exception.severity === 'critical' ? 'text-failed' : 'text-review'}`}>
-              {exception.message}
-            </span>
-          ))}
-        </td>
-        <td className={td}>
-          <Button variant="ghost" onClick={onToggle} aria-expanded={open}>
-            {open ? 'Hide proof' : 'Show proof'}
-          </Button>
-        </td>
-      </tr>
-      {open && (
-        <tr className="bg-sunken">
-          <td colSpan={6} className="border-b border-rule px-4 py-4">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <div className="space-y-2 text-[13px]">
-                <TickTrail line={line} />
-                <p className="text-ink-3">Obligation ID</p>
-                <CopyText value={line.obligationId} />
-                <p className="text-ink-3">Destination</p>
-                <CopyText value={line.destination} />
-                <p className="text-ink-3">Payer</p>
-                <CopyText value={line.payer} />
-              </div>
-              <div className="space-y-3">
-                {line.attempts.length === 0 ? <p className="text-[13px] text-ink-3">No attempts yet.</p> : line.attempts.map((attempt) => <AttemptEvidence key={attempt.id} attempt={attempt} />)}
-                {unresolved && canImport && <ImportTransaction runId={runId} line={line} onDone={onChange} />}
-                {unresolved && canResolve && line.status !== 'approved_unattempted' && <ManualResolve runId={runId} line={line} onDone={onChange} />}
-              </div>
-            </div>
-          </td>
-        </tr>
+            <StatTile
+              icon={<IconRefresh size={20} />}
+              tone={summary.counts.needs_review > 0 ? 'review' : undefined}
+              label="Lines verified"
+              value={`${summary.counts.paid_verified} / ${summary.counts.total}`}
+              sub={{ tone: 'review', label: 'Needs review', value: summary.counts.needs_review + summary.counts.incorrect }}
+            />
+          </div>
+        </>
       )}
-    </>
+
+      <h2 className="section-title">Lines</h2>
+      {!lines ? (
+        <Skeleton rows={3} height={84} />
+      ) : (
+        <div className="stack" style={{ gap: 10 }}>
+          {lines.map((line) => (
+            <LineCard
+              key={line.obligationId}
+              line={line}
+              runId={runId}
+              canImport={detail?.role === 'owner' || detail?.role === 'operator'}
+              canResolve={detail?.role === 'owner'}
+              onChange={() => void refresh()}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

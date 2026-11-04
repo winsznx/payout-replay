@@ -7,13 +7,13 @@ import { formatBaseUnits, timeAgo } from '@/lib/format';
 import { useRun } from '@/lib/run-context';
 import type { RecoveryPlan } from '@/lib/types';
 
-import { PaymentQueue } from './payment-queue';
-import { Button, Notice, Section, StatusMark } from './ui';
+import { IconAlert, IconRefresh } from './icons';
+import { PaymentCards, SigningStepper, usePaymentQueue } from './payment-queue';
+import { Button, Empty, IconTile, Notice, STATUS } from './ui';
 
 /**
- * Shared by Execute and Recover: build a plan from fresh chain state, show
- * exactly what is safe and what is blocked, then hand the safe lines to the
- * signing queue. The plan expires; signing revalidates it line by line.
+ * Shared by Execute and Recover: build a plan from fresh chain state, show exactly what is
+ * safe and what is blocked, and sign the safe lines one at a time.
  */
 export function PlanPanel({ kind }: { kind: 'execution' | 'recovery' }) {
   const { runId, detail, lines, refresh } = useRun();
@@ -22,14 +22,14 @@ export function PlanPanel({ kind }: { kind: 'execution' | 'recovery' }) {
   const latest = detail?.latestPlan;
   const current =
     latest && latest.kind === kind && ['open', 'revalidated'].includes(latest.status) && Date.parse(latest.plan.expiresAt) > Date.now() ? latest : null;
-  // A plan is a snapshot. Lines that were attempted since it was built leave the safe column at once;
-  // the server would refuse them anyway when they are revalidated.
+  const queue = usePaymentQueue(runId, current?.id ?? '', () => void refresh());
+
   const statusById = new Map((lines ?? []).map((line) => [line.obligationId, line.status]));
-  const stillSafe = current?.plan.eligible.filter((line) => {
-    const status = statusById.get(line.obligationId);
-    return status === undefined || status === 'approved_unattempted' || status === 'failed_verified';
-  }) ?? [];
-  const movedOn = current?.plan.eligible.filter((line) => !stillSafe.includes(line)) ?? [];
+  const stillSafe =
+    current?.plan.eligible.filter((line) => {
+      const status = statusById.get(line.obligationId);
+      return status === undefined || status === 'approved_unattempted' || status === 'failed_verified';
+    }) ?? [];
 
   const build = async () => {
     setBusy(true);
@@ -44,71 +44,79 @@ export function PlanPanel({ kind }: { kind: 'execution' | 'recovery' }) {
     }
   };
 
+  const buildLabel = current ? 'Rebuild plan from the chain' : kind === 'execution' ? 'Build payment plan' : 'Build recovery plan';
+
   return (
-    <>
-      <Section
-        title={kind === 'execution' ? 'Plan the payments' : 'Work out what is safe to pay again'}
-        description={
-          kind === 'execution'
-            ? 'The plan re-reads the chain first, so anything already attempted is held back.'
-            : 'Only lines with no attempt, or where every attempt failed conclusively on-chain, can be paid again. Anything uncertain stays blocked.'
-        }
-        actions={
-          <Button variant={current ? 'secondary' : 'primary'} busy={busy} onClick={() => void build()}>
-            {current ? 'Rebuild plan from the chain' : kind === 'execution' ? 'Build payment plan' : 'Build recovery plan'}
-          </Button>
-        }
-      >
-        {error && <Notice tone="failed">{error}</Notice>}
-        {!current && !error && (
-          <Notice>{latest ? `The last plan is ${latest.status === 'open' || latest.status === 'revalidated' ? 'expired' : latest.status}. Build a fresh one.` : 'No plan yet.'}</Notice>
-        )}
-        {current && (
-          <p className="text-[13px] text-ink-3">
-            Plan built {timeAgo(current.plan.createdAt)}, expires {timeAgo(current.plan.expiresAt)}. Fingerprint <span className="hash">{current.plan.fingerprint.slice(0, 23)}…</span>
+    <div className="stack" style={{ gap: 18 }}>
+      <div className="inset" style={{ flexWrap: 'wrap' }}>
+        <IconTile>
+          <IconRefresh size={18} />
+        </IconTile>
+        <div className="inset-body">
+          <span>{kind === 'execution' ? 'Payment plan' : 'Recovery plan'}</span>
+          <strong style={{ fontSize: 16 }}>
+            {current ? `Built ${timeAgo(current.plan.createdAt)}, expires ${timeAgo(current.plan.expiresAt)}` : latest && latest.kind === kind ? 'The last plan expired' : 'No plan yet'}
+          </strong>
+          <p>
+            {kind === 'execution'
+              ? 'The plan re-reads the chain first, so anything already attempted is held back.'
+              : 'Only lines with no attempt, or where every attempt failed conclusively on-chain, can be paid again.'}
           </p>
-        )}
-      </Section>
+        </div>
+        <Button variant={current ? 'secondary' : 'primary'} busy={busy} onClick={() => void build()}>
+          {buildLabel}
+        </Button>
+      </div>
+
+      {error && <Notice tone="failed">{error}</Notice>}
 
       {current && (
-        <div className="mt-6 grid gap-8 xl:grid-cols-[3fr_2fr]">
+        <div className="split">
           <div>
-            <h2 className="mb-3 text-[17px] font-semibold">Safe to pay ({stillSafe.length})</h2>
-            <PaymentQueue runId={runId} planId={current.id} lines={current.plan.eligible} statusById={statusById} onChange={() => void refresh()} />
-            {movedOn.length > 0 && (
-              <p className="mt-3 text-[13px] text-ink-3">
-                Attempted since this plan was built: {movedOn.map((line) => line.lineId).join(', ')}. Follow them on the settlement screen.
-              </p>
+            <h2 className="section-title" style={{ marginTop: 0 }}>
+              Safe to pay ({stillSafe.length}) <span className="mono">{current.plan.fingerprint.slice(0, 19)}…</span>
+            </h2>
+            {current.plan.eligible.length === 0 ? (
+              <Empty title="Nothing is safe to pay right now">Every line is either paid, in flight, or waiting for a human decision.</Empty>
+            ) : (
+              <PaymentCards lines={current.plan.eligible} statusById={statusById} steps={queue.steps} busy={queue.busy} onPay={(line) => void queue.pay(line)} />
             )}
           </div>
-          <div>
-            <h2 className="mb-3 text-[17px] font-semibold">Blocked ({current.plan.blocked.length})</h2>
-            {current.plan.blocked.length === 0 ? (
-              <p className="text-[14px] text-ink-3">Nothing is blocked.</p>
-            ) : (
-              <ul className="divide-y divide-rule border border-rule bg-surface">
+          <aside className="stack">
+            <SigningStepper line={queue.activeLine} step={queue.activeLine ? queue.steps[queue.activeLine.obligationId] : undefined} />
+            <div className="card">
+              <h2 className="card-title">Blocked ({current.plan.blocked.length})</h2>
+              <p className="card-desc">Never offered for payment, each with the reason.</p>
+              <div className="queue" style={{ marginTop: 12 }}>
+                {current.plan.blocked.length === 0 && <p style={{ fontSize: 13.5, color: 'var(--ink-3)' }}>Nothing is blocked.</p>}
                 {current.plan.blocked.map((line) => {
                   const obligation = detail?.latestVersion?.manifest?.obligations.find((item) => item.obligationId === line.obligationId);
+                  const meta = STATUS[line.status];
                   return (
-                    <li key={line.obligationId} className="space-y-1 px-4 py-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="font-medium">{line.lineId}</span>
-                        <StatusMark status={line.status} />
+                    <div className="queue-row" key={line.obligationId} style={{ alignItems: 'flex-start' }}>
+                      <IconTile tone={meta.tone}>
+                        <IconAlert size={16} />
+                      </IconTile>
+                      <div className="queue-main">
+                        <small>{meta.label}</small>
+                        <h3>
+                          {line.lineId}
+                          {obligation && (
+                            <span className="num" style={{ fontWeight: 500, color: 'var(--ink-2)', marginLeft: 8, fontSize: 14 }}>
+                              {formatBaseUnits(obligation.amountBaseUnits, obligation.decimals)} {obligation.symbol}
+                            </span>
+                          )}
+                        </h3>
+                        <p>{line.reason}</p>
                       </div>
-                      {obligation && (
-                        <p className="num text-[14px] text-ink-2">
-                          {formatBaseUnits(obligation.amountBaseUnits, obligation.decimals)} {obligation.symbol}
-                        </p>
-                      )}
-                      <p className="text-[14px] text-ink-2">{line.reason}</p>
-                    </li>
+                    </div>
                   );
                 })}
-              </ul>
-            )}
-          </div>
+              </div>
+            </div>
+          </aside>
         </div>
       )}
-    </>
+    </div>
   );
 }

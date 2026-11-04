@@ -3,7 +3,8 @@
 import { type FormEvent, useState } from 'react';
 import useSWR from 'swr';
 
-import { Button, CopyText, Notice, PageHeader, Section, Table, td, th } from '@/components/ui';
+import { IconKey } from '@/components/icons';
+import { Button, CopyText, IconTile, Notice, PageHead, TopBar } from '@/components/ui';
 import { apiPost, errorMessage, fetcher } from '@/lib/api';
 import { timeAgo } from '@/lib/format';
 import { useSession } from '@/lib/session';
@@ -11,38 +12,27 @@ import { useSession } from '@/lib/session';
 const ENDPOINTS: [string, string, string][] = [
   ['GET', '/api/v1/orgs/:orgId/runs', 'List payout runs'],
   ['POST', '/api/v1/orgs/:orgId/runs', 'Create a draft run'],
-  ['POST', '/api/v1/runs/:runId/import', 'Upload CSV text and get a validation report'],
-  ['POST', '/api/v1/runs/:runId/freeze', 'Freeze the latest valid import into a new version'],
-  ['POST', '/api/v1/runs/:runId/approvals', 'Approve or reject an exact version and digest (signed-in reviewer)'],
-  ['GET', '/api/v1/runs/:runId', 'Manifest, status summary and latest plan'],
-  ['GET', '/api/v1/runs/:runId/lines', 'Obligations with attempts and proof'],
-  ['POST', '/api/v1/runs/:runId/reconcile', 'Refresh chain evidence now'],
-  ['POST', '/api/v1/runs/:runId/recovery-plans', 'Recompute what is safe to pay (signed-in operator)'],
-  ['POST', '/api/v1/recovery-plans/:planId/revalidate', 'Recheck immediately before signing and get unsigned calls'],
-  ['POST', '/api/v1/runs/:runId/external-transactions', 'Attach an out-of-band tx reference for verification'],
+  ['POST', '/api/v1/runs/:runId/import', 'Upload CSV text, get a line-level report'],
+  ['POST', '/api/v1/runs/:runId/freeze', 'Freeze the latest valid import'],
+  ['GET', '/api/v1/runs/:runId/lines', 'Lines with attempts and proof'],
+  ['POST', '/api/v1/runs/:runId/reconcile', 'Re-read the chain now'],
+  ['POST', '/api/v1/runs/:runId/external-transactions', 'Attach an out-of-band transaction'],
   ['GET', '/api/v1/runs/:runId/export.csv', 'Reconciled sheet'],
   ['GET', '/api/v1/runs/:runId/exceptions.csv', 'Exceptions register'],
-  ['GET', '/api/v1/runs/:runId/evidence.json', 'Machine-readable evidence package'],
-  ['GET', '/health/chain', 'Public network capability summary'],
+  ['GET', '/api/v1/runs/:runId/evidence.json', 'Machine-readable evidence'],
+  ['GET', '/health/chain', 'Public network capability'],
 ];
 
-const SDK_SNIPPET = `import { validateManifestCsv, freezeManifest, reconcileRun, createRecoveryPlan } from '@payout-replay/core';
-import { EvmAdapter } from '@payout-replay/adapters-evm';
+const SDK = `import { PayoutReplayClient, NativeAdapter } from '@payout-replay/sdk';
 
-const report = validateManifestCsv(csvText, { assets, payers, ss58Prefix: 42 });
-if (!report.ok) throw new Error(report.issues.map((issue) => issue.message).join('\\n'));
+const client = new PayoutReplayClient({ baseUrl, apiKey: process.env.PAYOUT_REPLAY_KEY });
+const lines = await client.listLines('pr_…');
+const csv = await client.exportCsv('pr_…');
 
-const frozen = freezeManifest({ runId, version: 1, network, payers, assets, lines: report.lines });
-const evm = new EvmAdapter({ rpcUrl, chainId: 420420777, executorAddress });
-const outcome = await evm.observeAttempt({ environment: 'evm', txHash, payer, obligationId });
-// outcome.kind is 'finalized_success' | 'finalized_failure' | 'included' | 'pending' | 'unknown'`;
-
-const CURL_SNIPPET = `curl -H "Authorization: Bearer $PAYOUT_REPLAY_KEY" \\
-  https://<your-host>/api/v1/runs/<runId>/lines
-
-curl -X POST -H "Authorization: Bearer $PAYOUT_REPLAY_KEY" \\
-  -H "Idempotency-Key: $(uuidgen)" -H "content-type: application/json" \\
-  -d '{}' https://<your-host>/api/v1/runs/<runId>/reconcile`;
+// Or verify an extrinsic yourself, no hosted API involved
+const native = new NativeAdapter({ wsUrl: 'wss://test-node-v3.portaldot.dev' });
+const outcome = await native.observeAttempt({ environment: 'native', txHash, payer, obligationId, blockHash });
+// 'finalized_success' | 'finalized_failure' | 'included' | 'pending' | 'unknown'`;
 
 interface KeyRow {
   id: string;
@@ -60,8 +50,11 @@ function ApiKeys({ orgId }: { orgId: string }) {
   const [write, setWrite] = useState(false);
   const [secret, setSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
   const create = async (event: FormEvent) => {
     event.preventDefault();
+    setBusy(true);
     setError(null);
     try {
       const created = await apiPost<{ secret: string }>(`/orgs/${orgId}/api-keys`, { name, scopes: write ? ['runs:read', 'runs:write'] : ['runs:read'] });
@@ -70,63 +63,61 @@ function ApiKeys({ orgId }: { orgId: string }) {
       await keys.mutate();
     } catch (caught) {
       setError(errorMessage(caught));
+    } finally {
+      setBusy(false);
     }
   };
+
   return (
-    <div className="space-y-4">
-      <form onSubmit={(event) => void create(event)} className="flex flex-wrap items-center gap-3">
-        <input
-          required
-          minLength={2}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="Key name, e.g. accounting sync"
-          className="w-72 rounded-[5px] border border-rule-strong bg-surface px-3 py-1.5 text-[14px]"
-          aria-label="Key name"
-        />
-        <label className="flex items-center gap-2 text-[14px]">
+    <div className="card">
+      <h2 className="card-title">API keys</h2>
+      <p className="card-desc">Keys read runs and can attach transactions. They can never approve, sign or register wallets.</p>
+      <form onSubmit={(event) => void create(event)} className="stack" style={{ gap: 10, marginTop: 14 }}>
+        <input required minLength={2} value={name} onChange={(event) => setName(event.target.value)} placeholder="Key name, e.g. accounting sync" aria-label="Key name" className="input" />
+        <label style={{ display: 'flex', gap: 8, fontSize: 13.5, color: 'var(--ink-2)' }}>
           <input type="checkbox" checked={write} onChange={(event) => setWrite(event.target.checked)} />
           Can create runs, import CSVs and trigger checks
         </label>
-        <Button type="submit">Create key</Button>
+        <Button type="submit" variant="primary" busy={busy}>
+          Create key
+        </Button>
       </form>
       {secret && (
-        <Notice tone="accent" title="Copy this key now. It is not shown again.">
-          <CopyText value={secret} />
-        </Notice>
+        <div style={{ marginTop: 12 }}>
+          <Notice tone="info" title="Copy this key now. It isn’t shown again.">
+            <CopyText value={secret} />
+          </Notice>
+        </div>
       )}
-      {error && <Notice tone="failed">{error}</Notice>}
+      {error && (
+        <div style={{ marginTop: 12 }}>
+          <Notice tone="failed">{error}</Notice>
+        </div>
+      )}
       {keys.data && keys.data.length > 0 && (
-        <Table label="API keys">
-          <thead>
-            <tr>
-              <th className={th}>Name</th>
-              <th className={th}>Key starts with</th>
-              <th className={th}>Permissions</th>
-              <th className={th}>Last used</th>
-              <th className={th}>State</th>
-            </tr>
-          </thead>
-          <tbody>
-            {keys.data.map((key) => (
-              <tr key={key.id}>
-                <td className={td}>{key.name}</td>
-                <td className={`${td} hash`}>{key.prefix}</td>
-                <td className={td}>{key.scopes.join(', ')}</td>
-                <td className={td}>{timeAgo(key.lastUsedAt)}</td>
-                <td className={td}>
-                  {key.revokedAt ? (
-                    'Revoked'
-                  ) : (
-                    <Button variant="ghost" onClick={() => void apiPost(`/orgs/${orgId}/api-keys/${key.id}/revoke`, {}).then(() => keys.mutate())}>
-                      Revoke
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <div className="queue" style={{ marginTop: 14 }}>
+          {keys.data.map((key) => (
+            <div className="queue-row" key={key.id}>
+              <IconTile tone={key.revokedAt ? undefined : 'settled'}>
+                <IconKey size={18} />
+              </IconTile>
+              <div className="queue-main">
+                <small className="mono">{key.prefix}…</small>
+                <h3>{key.name}</h3>
+                <p>
+                  {key.scopes.join(', ')} · used {timeAgo(key.lastUsedAt)}
+                </p>
+              </div>
+              {key.revokedAt ? (
+                <span className="pill tone-neutral">Revoked</span>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={() => void apiPost(`/orgs/${orgId}/api-keys/${key.id}/revoke`, {}).then(() => keys.mutate())}>
+                  Revoke
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -135,51 +126,59 @@ function ApiKeys({ orgId }: { orgId: string }) {
 export default function DevelopersPage() {
   const { orgId, org } = useSession();
   return (
-    <div className="max-w-5xl">
-      <PageHeader
-        title="API and SDK"
-        description="The same reconciliation engine the app uses, as an open-source TypeScript package and a REST API. API keys can read and register data; they can never sign or move funds."
-      />
-      <Section title="TypeScript SDK" description="packages/core, packages/adapters-evm and packages/adapters-native in the repository.">
-        <pre className="overflow-x-auto border border-rule bg-sunken p-4 text-[13px] leading-relaxed">
-          <code className="font-mono">{SDK_SNIPPET}</code>
-        </pre>
-      </Section>
-      <Section title="REST endpoints" description="Writes need an Idempotency-Key header. Errors look like { error: { code, message, retryable, traceId } }.">
-        <Table label="REST endpoints">
-          <thead>
-            <tr>
-              <th className={th}>Method</th>
-              <th className={th}>Path</th>
-              <th className={th}>What it does</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ENDPOINTS.map(([method, path, description]) => (
-              <tr key={`${method} ${path}`}>
-                <td className={`${td} font-mono text-[13px]`}>{method}</td>
-                <td className={`${td} font-mono text-[13px]`}>{path}</td>
-                <td className={td}>{description}</td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-        <pre className="mt-4 overflow-x-auto border border-rule bg-sunken p-4 text-[13px] leading-relaxed">
-          <code className="font-mono">{CURL_SNIPPET}</code>
-        </pre>
-      </Section>
-      <Section title="Webhooks" description="payout_run.updated, obligation.paid_verified, obligation.needs_review and recovery_plan.ready.">
-        <p className="max-w-[72ch] text-[14px] text-ink-2">
-          Each delivery carries <code className="font-mono text-[13px]">x-payout-replay-signature: t=…,v1=…</code>, an HMAC-SHA256 of
-          <code className="font-mono text-[13px]"> {'"<t>.<body>"'}</code> with your endpoint secret, plus a stable event ID. Reject stale timestamps and
-          event IDs you have already processed. Failed deliveries retry with exponential backoff, up to eight times.
-        </p>
-      </Section>
-      {orgId && org?.role === 'owner' && (
-        <Section title="API keys">
-          <ApiKeys orgId={orgId} />
-        </Section>
-      )}
-    </div>
+    <>
+      <TopBar crumbs={[{ label: 'API and SDK' }]} />
+      <div className="page">
+        <PageHead
+          title="API and SDK"
+          description="The same reconciliation engine the app runs on, as an open-source TypeScript SDK and a REST API."
+        />
+        <div className="split">
+          <div className="stack">
+            <div className="code">{SDK}</div>
+            <div className="table-card">
+              <div className="table-scroll">
+                <table className="table" aria-label="REST endpoints">
+                  <thead>
+                    <tr>
+                      <th>Method</th>
+                      <th>Path</th>
+                      <th>What it does</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ENDPOINTS.map(([method, path, description]) => (
+                      <tr key={`${method} ${path}`}>
+                        <td>
+                          <span className={`pill ${method === 'GET' ? 'tone-waiting' : 'tone-neutral'}`}>{method}</span>
+                        </td>
+                        <td className="mono">{path}</td>
+                        <td style={{ color: 'var(--ink-2)' }}>{description}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <aside className="stack">
+            <div className="card-dark">
+              <p style={{ color: '#fff', fontSize: 17, fontWeight: 600 }}>Writes are idempotent</p>
+              <p style={{ marginTop: 6 }}>
+                Every POST carries an Idempotency-Key. A retried request replays the first response, so a lost network reply never creates a second attempt.
+              </p>
+            </div>
+            {orgId && org?.role === 'owner' && <ApiKeys orgId={orgId} />}
+            <div className="card">
+              <h2 className="card-title">Webhooks</h2>
+              <p className="card-desc">
+                payout_run.updated, obligation.paid_verified, obligation.needs_review and recovery_plan.ready. Each delivery is signed as{' '}
+                <span className="mono">t=…,v1=hmac</span> over the timestamp and body. Reject stale timestamps and repeated event IDs.
+              </p>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </>
   );
 }

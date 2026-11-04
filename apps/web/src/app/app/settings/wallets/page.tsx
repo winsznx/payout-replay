@@ -3,36 +3,15 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 
-import { Button, CopyText, Notice, PageHeader, Section, Skeleton } from '@/components/ui';
+import { IconChain, IconLayers, IconPlus, IconWallet } from '@/components/icons';
+import { Button, CopyText, IconTile, Module, Notice, PageHead, Skeleton, TopBar } from '@/components/ui';
 import { WalletConnect } from '@/components/wallet-connect';
 import { apiPost, errorMessage, fetcher } from '@/lib/api';
 import { connectEvm, signEvmMessage } from '@/lib/evm-wallet';
 import { formatBaseUnits, timeAgo } from '@/lib/format';
 import { type NativeAccount, connectNative, signNativeMessage } from '@/lib/native-wallet';
 import { useSession } from '@/lib/session';
-import type { ChainHealth, Environment, EnvironmentHealth, WalletView } from '@/lib/types';
-
-function NetworkCard({ health }: { health: EnvironmentHealth }) {
-  const tone = health.capability === 'verified' ? 'text-settled' : health.capability === 'unavailable' ? 'text-failed' : 'text-review';
-  return (
-    <div className="border border-rule bg-surface px-4 py-3 text-[14px]">
-      <p className="font-medium">{health.environment === 'evm' ? 'Portaldot V3 EVM' : 'Portaldot V3 native runtime'}</p>
-      <p className={`${tone} font-medium`}>
-        {health.capability === 'verified' ? 'Verified' : health.capability === 'unavailable' ? 'Unavailable' : 'Not verified'}
-        {health.rpcAvailable ? '' : ', RPC unreachable'}
-      </p>
-      <p className="mt-1 text-ink-2">{health.detail}</p>
-      {health.finalizedBlock && (
-        <p className="num mt-1 text-ink-3">
-          Finalized #{health.finalizedBlock}, best #{health.bestBlock}
-        </p>
-      )}
-      <p className="mt-1 text-[12px] text-ink-3">
-        {health.provider ?? 'no provider'}, checked {timeAgo(health.checkedAt)}
-      </p>
-    </div>
-  );
-}
+import type { ChainHealth, Environment, WalletView } from '@/lib/types';
 
 function RegisterWallet({ environment, orgId, onDone }: { environment: Environment; orgId: string; onDone(): void }) {
   const [accounts, setAccounts] = useState<NativeAccount[] | null>(null);
@@ -56,30 +35,33 @@ function RegisterWallet({ environment, orgId, onDone }: { environment: Environme
   };
 
   return (
-    <div className="space-y-2">
+    <div className="stack" style={{ gap: 10 }}>
       {environment === 'evm' ? (
-        <Button busy={busy} onClick={() => void connectEvm().then(register, (caught: unknown) => setError(errorMessage(caught)))}>
+        <Button variant="primary" busy={busy} onClick={() => void connectEvm().then(register, (caught: unknown) => setError(errorMessage(caught)))}>
           Register the connected EVM wallet
         </Button>
       ) : (
-        <Button busy={busy && !accounts} onClick={() => void connectNative().then(setAccounts, (caught: unknown) => setError(errorMessage(caught)))}>
+        <Button variant="primary" busy={busy && !accounts} onClick={() => void connectNative().then(setAccounts, (caught: unknown) => setError(errorMessage(caught)))}>
           Choose a native account to register
         </Button>
       )}
       {accounts && (
-        <ul className="divide-y divide-rule border border-rule bg-surface">
+        <div className="card-soft" style={{ padding: 8 }}>
           {accounts.map((account) => (
-            <li key={account.address} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
-              <span>
-                <span className="block text-[14px]">{account.name ?? 'Unnamed'}</span>
-                <span className="hash text-ink-2">{account.address}</span>
+            <div key={account.address} className="app-row" style={{ padding: '8px 10px' }}>
+              <span className="rail-avatar" style={{ background: 'var(--accent)' }}>
+                {(account.name ?? 'A').slice(0, 1).toUpperCase()}
               </span>
-              <Button busy={busy} onClick={() => void register(account.address)}>
-                Register this account
-              </Button>
-            </li>
+              <div className="app-row-body">
+                <strong>{account.name ?? 'Unnamed'}</strong>
+                <span className="mono">{account.address}</span>
+              </div>
+              <button type="button" className="icon-btn" aria-label={`Register ${account.address}`} onClick={() => void register(account.address)}>
+                <IconPlus size={18} />
+              </button>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
       {error && <Notice tone="failed">{error}</Notice>}
     </div>
@@ -88,92 +70,122 @@ function RegisterWallet({ environment, orgId, onDone }: { environment: Environme
 
 export default function WalletsPage() {
   const { orgId, org, me, refresh } = useSession();
-  const health = useSWR<ChainHealth>('/health/chain', (path: string) => fetch(path).then((response) => response.json() as Promise<ChainHealth>), { refreshInterval: 30_000 });
+  const health = useSWR<ChainHealth>('/health/chain', (path: string) => fetch(path).then((response) => response.json() as Promise<ChainHealth>), {
+    refreshInterval: 30_000,
+  });
   const wallets = useSWR<WalletView[]>(orgId ? `/orgs/${orgId}/wallets` : null, fetcher);
   const isOwner = org?.role === 'owner';
 
   return (
-    <div className="max-w-5xl">
-      <PageHeader
-        title="Payout wallets"
-        description="Native and EVM payouts come from separate wallets. Each is registered from its own signature; one address is never inferred from the other."
-      />
+    <>
+      <TopBar crumbs={[{ label: 'Payout wallets' }]} />
+      <div className="page">
+        <PageHead
+          title="Payout wallets"
+          description="Native and EVM payouts come from separate wallets. Each one is registered from its own signature, and neither address is ever derived from the other."
+        />
 
-      <Section title="Networks">
+        <div className="modules">
+          {(['native', 'evm'] as const).map((environment) => {
+            const wallet = wallets.data?.find((item) => item.environment === environment);
+            return (
+              <Module key={environment} title={environment === 'evm' ? 'EVM payout wallet' : 'Native payout wallet'} aside={<span>{environment === 'evm' ? 'Token payments' : 'tPOT payments'}</span>}>
+                {!wallets.data ? (
+                  <Skeleton rows={1} height={110} />
+                ) : wallet ? (
+                  <div className="stack" style={{ gap: 12 }}>
+                    <div className="inset">
+                      <IconTile tone={wallet.chainMatches ? 'settled' : 'failed'}>
+                        <IconWallet size={18} />
+                      </IconTile>
+                      <div className="inset-body">
+                        <span>Fee balance</span>
+                        <strong className="num">
+                          {wallet.feeBalanceBaseUnits !== null && wallet.feeBalanceDecimals !== null
+                            ? `${formatBaseUnits(wallet.feeBalanceBaseUnits, wallet.feeBalanceDecimals)} tPOT`
+                            : 'Unavailable'}
+                        </strong>
+                        <p>{wallet.balanceError ?? (wallet.chainMatches ? `Bound to ${wallet.chainIdentity}` : `Registered on ${wallet.chainIdentity}, not the configured network`)}</p>
+                      </div>
+                    </div>
+                    <CopyText value={wallet.address} />
+                    <p style={{ fontSize: 13, color: 'var(--ink-3)' }}>Signature verified {timeAgo(wallet.verifiedAt)}</p>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: 13.5, color: 'var(--ink-2)', marginBottom: 12 }}>Not registered. Lines for this environment can’t be imported yet.</p>
+                )}
+                {isOwner && orgId && (
+                  <div style={{ marginTop: 14 }}>
+                    <RegisterWallet environment={environment} orgId={orgId} onDone={() => void Promise.all([wallets.mutate(), refresh()])} />
+                  </div>
+                )}
+              </Module>
+            );
+          })}
+        </div>
+        {!isOwner && <Notice>Only an owner can change payout wallets.</Notice>}
+
+        <h2 className="section-title">Portaldot V3 networks</h2>
         {!health.data ? (
-          <Skeleton rows={2} />
+          <Skeleton rows={2} height={80} />
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            <NetworkCard health={health.data.native} />
-            <NetworkCard health={health.data.evm} />
+          <div className="modules">
+            {[health.data.native, health.data.evm].map((env) => (
+              <div className="inset" key={env.environment} style={{ alignItems: 'flex-start' }}>
+                <IconTile tone={env.capability === 'verified' ? 'settled' : env.capability === 'unavailable' ? 'failed' : 'review'}>
+                  {env.environment === 'evm' ? <IconLayers size={18} /> : <IconChain size={18} />}
+                </IconTile>
+                <div className="inset-body">
+                  <span>{env.environment === 'evm' ? 'EVM (pallet-revive)' : 'Native runtime'}</span>
+                  <strong>{env.capability === 'verified' ? 'Verified' : env.capability === 'unavailable' ? 'Unavailable' : 'Not verified'}</strong>
+                  <p>{env.detail}</p>
+                  {env.finalizedBlock && (
+                    <p className="num">
+                      Finalised #{env.finalizedBlock}, best #{env.bestBlock} · {env.provider}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         )}
         {health.data && health.data.assets.length > 0 && (
-          <ul className="mt-3 space-y-1 text-[14px]">
+          <div className="filter-pills" style={{ marginTop: 4 }}>
             {health.data.assets.map((asset) => (
-              <li key={asset.assetId} className="text-ink-2">
-                <span className="font-medium text-ink">{asset.symbol}</span> ({asset.environment}, {asset.decimals} decimals): {asset.capability}
-                {asset.label ? `. ${asset.label}` : ''}
-              </li>
+              <span key={asset.assetId} title={asset.label}>
+                <span className={`dot dot-${asset.capability === 'verified' ? 'settled' : 'review'}`} aria-hidden />
+                {asset.symbol}, {asset.decimals} decimals, {asset.capability}
+              </span>
             ))}
-          </ul>
-        )}
-      </Section>
-
-      <Section title="Registered payout sources">
-        {!wallets.data ? (
-          <Skeleton rows={2} />
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {(['native', 'evm'] as const).map((environment) => {
-              const wallet = wallets.data?.find((item) => item.environment === environment);
-              return (
-                <div key={environment} className="border border-rule bg-surface px-4 py-3">
-                  <p className="font-medium">{environment === 'evm' ? 'EVM payout wallet' : 'Native payout wallet'}</p>
-                  {wallet ? (
-                    <div className="mt-2 space-y-1 text-[14px]">
-                      <CopyText value={wallet.address} />
-                      <p className="text-ink-2">
-                        Fee balance:{' '}
-                        {wallet.feeBalanceBaseUnits !== null && wallet.feeBalanceDecimals !== null ? (
-                          <span className="num">
-                            {formatBaseUnits(wallet.feeBalanceBaseUnits, wallet.feeBalanceDecimals)} {wallet.feeAsset}
-                          </span>
-                        ) : (
-                          <span className="text-review">unavailable ({wallet.balanceError})</span>
-                        )}
-                      </p>
-                      <p className={wallet.chainMatches ? 'text-ink-3' : 'text-failed'}>
-                        {wallet.chainMatches ? `Bound to ${wallet.chainIdentity}` : `Registered on ${wallet.chainIdentity}, which is not the configured network`}
-                      </p>
-                      <p className="text-ink-3">Signature verified {timeAgo(wallet.verifiedAt)}</p>
-                    </div>
-                  ) : (
-                    <p className="mt-2 text-[14px] text-ink-2">Not registered. Lines for this environment cannot be imported yet.</p>
-                  )}
-                  {isOwner && orgId && (
-                    <div className="mt-3">
-                      <RegisterWallet environment={environment} orgId={orgId} onDone={() => void Promise.all([wallets.mutate(), refresh()])} />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
           </div>
         )}
-        {!isOwner && <p className="mt-3 text-[14px] text-ink-3">Only an owner can change payout wallets.</p>}
-      </Section>
 
-      <Section title="Wallets you can sign with" description="To sign payments you must be signed in with, or have linked, the payout wallet for that environment.">
-        <ul className="mb-4 space-y-1 text-[14px]">
-          {me?.identities.map((identity) => (
-            <li key={identity.id}>
-              {identity.environment === 'evm' ? 'EVM' : 'Native'} <span className="hash">{identity.address}</span>
-            </li>
-          ))}
-        </ul>
-        <WalletConnect link label="Link" onDone={() => void refresh()} />
-      </Section>
-    </div>
+        <h2 className="section-title">Wallets you can sign with</h2>
+        <div className="split">
+          <div className="card">
+            <p className="card-desc" style={{ marginTop: 0 }}>
+              To sign a payment you must be signed in with, or have linked, that environment’s payout wallet.
+            </p>
+            <div className="queue" style={{ marginTop: 12 }}>
+              {me?.identities.map((identity) => (
+                <div className="queue-row" key={identity.id}>
+                  <IconTile>{identity.environment === 'evm' ? <IconLayers size={18} /> : <IconChain size={18} />}</IconTile>
+                  <div className="queue-main">
+                    <small>{identity.environment === 'evm' ? 'EVM' : 'Native'}</small>
+                    <p className="mono" style={{ color: 'var(--ink)' }}>
+                      {identity.address}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="card">
+            <h2 className="card-title">Link another wallet</h2>
+            <WalletConnect link onDone={() => void refresh()} />
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

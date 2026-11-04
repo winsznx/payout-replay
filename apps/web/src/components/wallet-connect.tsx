@@ -7,18 +7,19 @@ import { type NativeAccount, connectNative } from '@/lib/native-wallet';
 import { signInWithWallet } from '@/lib/session';
 import type { Environment } from '@/lib/types';
 
+import { IconChain, IconLayers, IconPlus } from './icons';
 import { Button, Notice } from './ui';
 
 /**
- * Wallet sign-in. EVM uses the injected provider; native lists accounts from
- * a Polkadot-compatible extension. Neither path ever asks for a key.
+ * Wallet chooser in the "apps list" pattern: one row per wallet type with an icon tile and a
+ * round action. Native lists the accounts the extension shares. No path asks for a key.
  */
-export function WalletConnect({ onDone, link = false, label }: { onDone(): void; link?: boolean; label?: string }) {
+export function WalletConnect({ onDone, link = false }: { onDone(): void; link?: boolean }) {
   const [busy, setBusy] = useState<Environment | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [nativeAccounts, setNativeAccounts] = useState<NativeAccount[] | null>(null);
 
-  const run = async (environment: Environment, address: string | null) => {
+  const sign = async (environment: Environment, address: string | null) => {
     setBusy(environment);
     setError(null);
     try {
@@ -43,37 +44,61 @@ export function WalletConnect({ onDone, link = false, label }: { onDone(): void;
     }
   };
 
+  const verb = link ? 'Link' : 'Sign in with';
+
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        <Button variant="primary" busy={busy === 'evm'} onClick={() => void run('evm', null)}>
-          {label ? `${label} with EVM wallet` : 'Sign in with EVM wallet'}
-        </Button>
-        <Button busy={busy === 'native' && !nativeAccounts} onClick={() => void listNative()}>
-          {label ? `${label} with Portaldot wallet` : 'Sign in with Portaldot wallet'}
-        </Button>
+    <div>
+      <div className="app-list">
+        <div className="app-row">
+          <span className="icon-tile">
+            <IconLayers />
+          </span>
+          <div className="app-row-body">
+            <strong>EVM wallet</strong>
+            <span>MetaMask or any injected wallet on Portaldot V3 EVM</span>
+          </div>
+          <Button variant="primary" size="sm" busy={busy === 'evm'} onClick={() => void sign('evm', null)}>
+            {`${verb} EVM wallet`}
+          </Button>
+        </div>
+        <div className="app-row">
+          <span className="icon-tile">
+            <IconChain />
+          </span>
+          <div className="app-row-body">
+            <strong>Portaldot wallet</strong>
+            <span>Polkadot.js, Talisman or SubWallet for native tPOT</span>
+          </div>
+          <Button variant="secondary" size="sm" busy={busy === 'native' && !nativeAccounts} onClick={() => void listNative()}>
+            {`${verb} Portaldot wallet`}
+          </Button>
+        </div>
       </div>
+
       {nativeAccounts && (
-        <fieldset className="border border-rule bg-surface p-3">
-          <legend className="px-1 text-[13px] text-ink-3">Choose the native account to sign with</legend>
-          {nativeAccounts.length === 0 && <p className="text-[14px] text-ink-2">The extension shared no accounts with this site.</p>}
-          <ul className="divide-y divide-rule">
-            {nativeAccounts.map((account) => (
-              <li key={account.address} className="flex flex-wrap items-center justify-between gap-3 py-2">
-                <span className="min-w-0">
-                  <span className="block text-[14px] text-ink">{account.name ?? 'Unnamed account'}</span>
-                  <span className="hash text-ink-2">{account.address}</span>
-                </span>
-                <Button busy={busy === 'native'} onClick={() => void run('native', account.address)}>
-                  Sign with this account
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </fieldset>
+        <div className="card-soft" style={{ padding: 10, marginBottom: 14 }}>
+          {nativeAccounts.length === 0 && <p style={{ padding: 10, color: 'var(--ink-2)' }}>The extension shared no accounts with this site.</p>}
+          {nativeAccounts.map((account) => (
+            <div key={account.address} className="app-row" style={{ padding: '8px 10px' }}>
+              <span className="rail-avatar" style={{ background: 'var(--accent)' }}>
+                {(account.name ?? 'A').slice(0, 1).toUpperCase()}
+              </span>
+              <div className="app-row-body">
+                <strong>{account.name ?? 'Unnamed account'}</strong>
+                <span className="mono">{account.address}</span>
+              </div>
+              <button type="button" className="icon-btn" aria-label={`Sign with ${account.address}`} onClick={() => void sign('native', account.address)}>
+                {busy === 'native' ? <span className="spinner" /> : <IconPlus size={18} />}
+              </button>
+            </div>
+          ))}
+        </div>
       )}
+
       {error && <Notice tone="failed">{error}</Notice>}
-      <p className="text-[13px] text-ink-3">You sign a text message that names this site and network. It cannot move funds.</p>
+      <p style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 10 }}>
+        You sign a short message that names this site and network. It can’t move funds.
+      </p>
     </div>
   );
 }

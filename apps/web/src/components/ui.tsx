@@ -1,128 +1,131 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { type ButtonHTMLAttributes, type ReactNode, useState } from 'react';
 
 import type { AttemptView, LineView, ObligationStatus } from '@/lib/types';
 
-type Tone = 'settled' | 'failed' | 'review' | 'waiting' | 'accent' | 'neutral';
+import { IconAlert, IconArrowRight, IconCheck, IconChevronLeft, IconChevronRight, IconClock, IconX } from './icons';
 
-const TONE_CLASS: Record<Tone, string> = {
-  settled: 'text-settled bg-settled-wash',
-  failed: 'text-failed bg-failed-wash',
-  review: 'text-review bg-review-wash',
-  waiting: 'text-waiting bg-waiting-wash',
-  accent: 'text-accent bg-accent-wash',
-  neutral: 'text-ink-2 bg-sunken',
-};
+export type Tone = 'settled' | 'failed' | 'review' | 'waiting' | 'neutral';
 
-/** Glyphs carry meaning on their own so status never depends on colour alone. */
-function Glyph({ shape, className = '' }: { shape: 'check' | 'cross' | 'bang' | 'dot' | 'ring' | 'half' | 'dash'; className?: string }) {
-  const common = { width: 14, height: 14, viewBox: '0 0 14 14', 'aria-hidden': true, className } as const;
-  switch (shape) {
-    case 'check':
-      return (
-        <svg {...common}>
-          <path d="M2.5 7.5 5.5 10.5 11.5 3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case 'cross':
-      return (
-        <svg {...common}>
-          <path d="M3.5 3.5l7 7M10.5 3.5l-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      );
-    case 'bang':
-      return (
-        <svg {...common}>
-          <path d="M7 2.5v5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          <circle cx="7" cy="11" r="1.2" fill="currentColor" />
-        </svg>
-      );
-    case 'half':
-      return (
-        <svg {...common}>
-          <circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" strokeWidth="1.6" />
-          <path d="M7 2a5 5 0 0 1 0 10z" fill="currentColor" />
-        </svg>
-      );
-    case 'ring':
-      return (
-        <svg {...common}>
-          <circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeDasharray="2.4 2" />
-        </svg>
-      );
-    case 'dash':
-      return (
-        <svg {...common}>
-          <path d="M3 7h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      );
-    default:
-      return (
-        <svg {...common}>
-          <circle cx="7" cy="7" r="3" fill="currentColor" />
-        </svg>
-      );
-  }
+type ButtonVariant = 'primary' | 'secondary' | 'soft' | 'white' | 'danger' | 'ghost';
+
+export function Button({
+  variant = 'secondary',
+  size,
+  busy = false,
+  block = false,
+  className = '',
+  children,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: 'sm'; busy?: boolean; block?: boolean }) {
+  return (
+    <button
+      type="button"
+      {...props}
+      disabled={props.disabled || busy}
+      aria-busy={busy || undefined}
+      className={`btn btn-${variant} ${size === 'sm' ? 'btn-sm' : ''} ${block ? 'btn-block' : ''} ${className}`}
+    >
+      {busy && <span className="spinner" aria-hidden />}
+      {children}
+    </button>
+  );
 }
 
-const STATUS: Record<ObligationStatus, { label: string; tone: Tone; glyph: Parameters<typeof Glyph>[0]['shape'] }> = {
-  approved_unattempted: { label: 'Not attempted', tone: 'neutral', glyph: 'dash' },
-  awaiting_signature: { label: 'Awaiting signature', tone: 'accent', glyph: 'ring' },
-  submitted: { label: 'Submitted', tone: 'waiting', glyph: 'ring' },
-  confirming: { label: 'Confirming', tone: 'waiting', glyph: 'half' },
-  paid_verified: { label: 'Paid, verified', tone: 'settled', glyph: 'check' },
-  failed_verified: { label: 'Failed, verified', tone: 'failed', glyph: 'cross' },
-  incorrect: { label: 'Incorrect transfer', tone: 'failed', glyph: 'bang' },
-  needs_review: { label: 'Needs review', tone: 'review', glyph: 'bang' },
-  manually_resolved: { label: 'Resolved manually', tone: 'neutral', glyph: 'dot' },
+export function ButtonLink({
+  href,
+  variant = 'secondary',
+  size,
+  children,
+}: {
+  href: string;
+  variant?: ButtonVariant;
+  size?: 'sm';
+  children: ReactNode;
+}) {
+  return (
+    <Link href={href} className={`btn btn-${variant} ${size === 'sm' ? 'btn-sm' : ''}`}>
+      {children}
+    </Link>
+  );
+}
+
+export const STATUS: Record<ObligationStatus, { label: string; tone: Tone }> = {
+  approved_unattempted: { label: 'Not attempted', tone: 'neutral' },
+  awaiting_signature: { label: 'Awaiting signature', tone: 'waiting' },
+  submitted: { label: 'Submitted', tone: 'waiting' },
+  confirming: { label: 'Confirming', tone: 'waiting' },
+  paid_verified: { label: 'Paid, verified', tone: 'settled' },
+  failed_verified: { label: 'Failed, verified', tone: 'failed' },
+  incorrect: { label: 'Incorrect transfer', tone: 'failed' },
+  needs_review: { label: 'Needs review', tone: 'review' },
+  manually_resolved: { label: 'Resolved manually', tone: 'neutral' },
 };
 
-export function StatusMark({ status }: { status: ObligationStatus }) {
+export function ToneIcon({ tone, size = 14 }: { tone: Tone; size?: number }) {
+  if (tone === 'settled') return <IconCheck size={size} strokeWidth={2.2} />;
+  if (tone === 'failed') return <IconX size={size} strokeWidth={2.2} />;
+  if (tone === 'review') return <IconAlert size={size} strokeWidth={2} />;
+  if (tone === 'waiting') return <IconClock size={size} strokeWidth={2} />;
+  return <span className="dot dot-neutral" aria-hidden />;
+}
+
+export function StatusPill({ status }: { status: ObligationStatus }) {
   const meta = STATUS[status];
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-[4px] px-1.5 py-0.5 text-[13px] font-medium whitespace-nowrap ${TONE_CLASS[meta.tone]}`}>
-      <Glyph shape={meta.glyph} />
+    <span className={`pill tone-${meta.tone}`}>
+      <ToneIcon tone={meta.tone} />
       {meta.label}
     </span>
   );
 }
 
-export function RunStatusMark({ status, label }: { status: string; label: string }) {
-  const tone: Tone =
-    status === 'complete' ? 'settled' : status === 'needs_review' ? 'review' : status === 'incomplete' ? 'failed' : ['executing', 'reconciling', 'recovering'].includes(status) ? 'waiting' : 'neutral';
-  const glyph = tone === 'settled' ? 'check' : tone === 'review' ? 'bang' : tone === 'failed' ? 'cross' : tone === 'waiting' ? 'half' : 'dash';
+export const RUN_STATUS: Record<string, { label: string; tone: Tone }> = {
+  draft: { label: 'Draft', tone: 'neutral' },
+  validated: { label: 'Validated', tone: 'neutral' },
+  awaiting_approval: { label: 'Awaiting approval', tone: 'review' },
+  approved: { label: 'Approved', tone: 'waiting' },
+  executing: { label: 'Executing', tone: 'waiting' },
+  reconciling: { label: 'Waiting for finality', tone: 'waiting' },
+  recovering: { label: 'Recovering', tone: 'waiting' },
+  complete: { label: 'Complete', tone: 'settled' },
+  incomplete: { label: 'Incomplete', tone: 'failed' },
+  needs_review: { label: 'Needs review', tone: 'review' },
+};
+
+export function RunStatusPill({ status }: { status: string }) {
+  const meta = RUN_STATUS[status] ?? { label: status, tone: 'neutral' as const };
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-[4px] px-1.5 py-0.5 text-[13px] font-medium whitespace-nowrap ${TONE_CLASS[tone]}`}>
-      <Glyph shape={glyph} />
-      {label}
+    <span className={`pill tone-${meta.tone}`}>
+      <ToneIcon tone={meta.tone} />
+      {meta.label}
     </span>
   );
 }
 
-type TickState = 'done' | 'current' | 'failed' | 'unknown' | 'empty';
+export function IconTile({ tone, children }: { tone?: Tone; children: ReactNode }) {
+  return <span className={`icon-tile ${tone && tone !== 'neutral' ? `tone-${tone}` : ''}`}>{children}</span>;
+}
 
-/**
- * The settlement trail: Approved → Submitted → Included → Finalised → Matched.
- * Each tick is filled only from stored evidence for the latest attempt.
- */
-export function settlementTrail(line: LineView): { label: string; state: TickState; note?: string }[] {
+type TrailState = 'done' | 'current' | 'failed' | 'unknown' | 'empty';
+
+/** Approved, Submitted, Included, Finalised, Matched: each step is filled only from stored evidence. */
+export function trailFor(line: LineView): { label: string; state: TrailState }[] {
   const latest: AttemptView | undefined = line.attempts.at(-1);
   const settled = line.status === 'paid_verified';
   const outcome = latest?.outcome;
-  const submitted = latest && latest.phase !== 'prepared' && latest.phase !== 'signature_rejected';
-  const included = settled || outcome?.kind === 'included' || outcome?.kind === 'finalized_success' || (outcome?.kind === 'finalized_failure' && Boolean(outcome.evidence));
-  const finalized = settled || outcome?.kind === 'finalized_success' || outcome?.kind === 'finalized_failure';
+  const submitted = Boolean(latest && latest.phase !== 'prepared' && latest.phase !== 'signature_rejected');
   const failedFinal = outcome?.kind === 'finalized_failure';
   const unknown = outcome?.kind === 'unknown';
+  const included =
+    settled || outcome?.kind === 'included' || outcome?.kind === 'finalized_success' || (failedFinal && Boolean(outcome.evidence));
+  const finalized = settled || outcome?.kind === 'finalized_success' || failedFinal;
   return [
     { label: 'Approved', state: 'done' },
-    {
-      label: 'Submitted',
-      state: settled || submitted ? 'done' : latest?.phase === 'prepared' ? 'current' : 'empty',
-      ...(latest?.phase === 'signature_rejected' ? { note: 'signature rejected' } : {}),
-    },
+    { label: 'Submitted', state: settled || submitted ? 'done' : latest?.phase === 'prepared' ? 'current' : 'empty' },
     {
       label: 'Included',
       state: included ? (failedFinal && outcome.reason === 'evm_reverted' ? 'failed' : 'done') : unknown ? 'unknown' : submitted ? 'current' : 'empty',
@@ -135,88 +138,48 @@ export function settlementTrail(line: LineView): { label: string; state: TickSta
   ];
 }
 
-const TICK_STYLE: Record<TickState, string> = {
-  done: 'bg-settled text-paper border-settled',
-  current: 'bg-transparent text-waiting border-waiting',
-  failed: 'bg-failed text-paper border-failed',
-  unknown: 'bg-review-wash text-review border-review',
-  empty: 'bg-transparent text-transparent border-rule-strong',
-};
-
-export function TickTrail({ line, compact = false }: { line: LineView; compact?: boolean }) {
-  const steps = settlementTrail(line);
+export function Trail({ line, labels = false }: { line: LineView; labels?: boolean }) {
+  const steps = trailFor(line);
   return (
-    <ol className="flex items-center gap-0" aria-label="Settlement trail">
-      {steps.map((step, index) => (
-        <li key={step.label} className="flex items-center">
-          {index > 0 && <span className={`h-px w-3 ${step.state === 'empty' ? 'bg-rule' : 'bg-rule-strong'}`} aria-hidden />}
-          <span className="group relative flex items-center gap-1" title={`${step.label}: ${step.state}${step.note ? ` (${step.note})` : ''}`}>
-            <span className={`flex h-[18px] w-[18px] items-center justify-center rounded-full border ${TICK_STYLE[step.state]}`}>
-              <Glyph
-                shape={step.state === 'done' ? 'check' : step.state === 'failed' ? 'cross' : step.state === 'unknown' ? 'bang' : step.state === 'current' ? 'ring' : 'dot'}
-                className="h-[11px] w-[11px]"
-              />
+    <div>
+      <ol className="trail" aria-label="Settlement trail">
+        {steps.map((step, index) => (
+          <li key={step.label} title={`${step.label}: ${step.state}`}>
+            {index > 0 && <span className={`trail-link ${step.state === 'done' ? 'done' : ''}`} aria-hidden />}
+            <span className={`trail-node ${step.state}`}>
+              {step.state === 'done' && <IconCheck size={12} strokeWidth={2.6} />}
+              {step.state === 'failed' && <IconX size={12} strokeWidth={2.6} />}
+              {step.state === 'unknown' && <IconAlert size={11} strokeWidth={2.4} />}
             </span>
-            {!compact && <span className={`text-[12px] ${step.state === 'empty' ? 'text-ink-3' : 'text-ink-2'}`}>{step.label}</span>}
             <span className="sr-only">{`${step.label}: ${step.state}`}</span>
-          </span>
-        </li>
-      ))}
-    </ol>
+          </li>
+        ))}
+      </ol>
+      {labels && (
+        <div className="trail-labels" aria-hidden>
+          {steps.map((step) => (
+            <span key={step.label}>{step.label}</span>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
-export function Button({
-  variant = 'secondary',
-  busy = false,
-  children,
-  className = '',
-  ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' | 'ghost'; busy?: boolean }) {
-  const styles = {
-    primary: 'bg-accent text-accent-ink border-accent hover:brightness-110',
-    secondary: 'bg-surface text-ink border-rule-strong hover:bg-sunken',
-    danger: 'bg-surface text-failed border-failed hover:bg-failed-wash',
-    ghost: 'bg-transparent text-ink-2 border-transparent hover:bg-sunken',
-  }[variant];
-  return (
-    <button
-      type="button"
-      {...props}
-      disabled={props.disabled || busy}
-      aria-busy={busy || undefined}
-      className={`inline-flex items-center justify-center gap-2 rounded-[5px] border px-3 py-1.5 text-[14px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${styles} ${className}`}
-    >
-      {busy && <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />}
-      {children}
-    </button>
-  );
-}
-
-export function ButtonLink({ href, children, variant = 'secondary' }: { href: string; children: ReactNode; variant?: 'primary' | 'secondary' }) {
-  const styles = variant === 'primary' ? 'bg-accent text-accent-ink border-accent hover:brightness-110' : 'bg-surface text-ink border-rule-strong hover:bg-sunken';
-  return (
-    <Link href={href} className={`inline-flex items-center justify-center gap-2 rounded-[5px] border px-3 py-1.5 text-[14px] font-medium ${styles}`}>
-      {children}
-    </Link>
-  );
-}
-
-export function CopyText({ value, display, className = '' }: { value: string; display?: string; className?: string }) {
+export function CopyText({ value, display }: { value: string; display?: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <span className={`inline-flex items-baseline gap-1.5 ${className}`}>
-      <span className="hash">{display ?? value}</span>
+    <span className="copy">
+      <span className="mono">{display ?? value}</span>
       <button
         type="button"
-        className="shrink-0 rounded px-1 text-[12px] text-ink-3 hover:bg-sunken hover:text-ink"
+        aria-label={`Copy ${value}`}
         onClick={() => {
           void navigator.clipboard.writeText(value).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 1200);
           });
         }}
-        aria-label={`Copy ${value}`}
       >
         {copied ? 'Copied' : 'Copy'}
       </button>
@@ -224,80 +187,150 @@ export function CopyText({ value, display, className = '' }: { value: string; di
   );
 }
 
-export function Notice({ tone = 'neutral', title, children }: { tone?: Tone; title?: string; children: ReactNode }) {
-  const border = {
-    settled: 'border-settled',
-    failed: 'border-failed',
-    review: 'border-review',
-    waiting: 'border-waiting',
-    accent: 'border-accent',
-    neutral: 'border-rule-strong',
-  }[tone];
+export function Notice({ tone = 'info', title, children }: { tone?: 'failed' | 'review' | 'info' | 'settled'; title?: string; children?: ReactNode }) {
+  const iconTone: Tone = tone === 'info' ? 'waiting' : tone;
   return (
-    <div role={tone === 'failed' ? 'alert' : 'status'} className={`border-l-[3px] bg-surface px-4 py-3 text-[14px] ${border}`}>
-      {title && <p className="font-semibold text-ink">{title}</p>}
-      <div className="text-ink-2">{children}</div>
+    <div className={`notice notice-${tone}`} role={tone === 'failed' ? 'alert' : 'status'}>
+      <span className="icon-tile" style={{ background: '#fff' }}>
+        <ToneIcon tone={iconTone} size={16} />
+      </span>
+      <div>
+        {title && <strong>{title}</strong>}
+        {children && <p>{children}</p>}
+      </div>
     </div>
   );
 }
 
-export function PageHeader({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
+export function TopBar({ crumbs, actions }: { crumbs: { label: string; href?: string }[]; actions?: ReactNode }) {
+  const router = useRouter();
   return (
-    <header className="flex flex-wrap items-end justify-between gap-4 border-b border-rule pb-4">
-      <div className="max-w-[70ch]">
-        <h1 className="text-[26px] leading-tight font-semibold tracking-[-0.01em] text-ink">{title}</h1>
-        {description && <div className="mt-1 text-[15px] text-ink-2">{description}</div>}
-      </div>
-      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+    <header className="topbar">
+      <nav className="crumbs" aria-label="Breadcrumb">
+        <span className="crumb-nav">
+          <button type="button" aria-label="Back" onClick={() => router.back()}>
+            <IconChevronLeft size={16} />
+          </button>
+          <button type="button" aria-label="Forward" onClick={() => router.forward()}>
+            <IconChevronRight size={16} />
+          </button>
+        </span>
+        {crumbs.map((crumb, index) => {
+          const last = index === crumbs.length - 1;
+          return (
+            <span key={`${crumb.label}-${index}`} style={{ display: 'inline-flex', gap: 10, alignItems: 'center' }}>
+              {index > 0 && (
+                <span className="crumb-sep" aria-hidden>
+                  /
+                </span>
+              )}
+              {crumb.href && !last ? (
+                <Link href={crumb.href}>{crumb.label}</Link>
+              ) : (
+                <span aria-current={last ? 'page' : undefined}>{crumb.label}</span>
+              )}
+            </span>
+          );
+        })}
+      </nav>
+      {actions && <div className="topbar-actions">{actions}</div>}
     </header>
   );
 }
 
-export function Section({ title, description, children, actions }: { title: string; description?: ReactNode; children: ReactNode; actions?: ReactNode }) {
+export function PageHead({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
   return (
-    <section className="mt-8">
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
+    <div className="page-head">
+      <div>
+        <h1>{title}</h1>
+        {description && <p>{description}</p>}
+      </div>
+      {actions && <div className="page-head-actions">{actions}</div>}
+    </div>
+  );
+}
+
+export function StatTile({
+  icon,
+  tone,
+  label,
+  value,
+  sub,
+  link,
+}: {
+  icon: ReactNode;
+  tone?: Tone;
+  label: string;
+  value: ReactNode;
+  sub?: { tone: Tone; label: string; value: ReactNode };
+  link?: { href: string; label: string };
+}) {
+  return (
+    <div className="tile">
+      <div className="tile-top">
+        <IconTile tone={tone}>{icon}</IconTile>
         <div>
-          <h2 className="text-[17px] font-semibold text-ink">{title}</h2>
-          {description && <p className="text-[14px] text-ink-3">{description}</p>}
+          <span>{label}</span>
+          <strong className="num">{value}</strong>
         </div>
-        {actions}
+      </div>
+      {sub && (
+        <div className="tile-sub">
+          <span className={`dot dot-${sub.tone}`} aria-hidden />
+          {sub.label}
+          <b className="num">{sub.value}</b>
+        </div>
+      )}
+      {link && (
+        <Link href={link.href} className="tile-link">
+          {link.label}
+          <IconArrowRight size={16} />
+        </Link>
+      )}
+    </div>
+  );
+}
+
+export function Module({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
+  return (
+    <section className="module">
+      <div className="module-head">
+        <h2>{title}</h2>
+        {aside}
       </div>
       {children}
     </section>
   );
 }
 
-export function Table({ children, label }: { children: ReactNode; label: string }) {
+export function Skeleton({ rows = 3, height = 64 }: { rows?: number; height?: number }) {
   return (
-    <div className="overflow-x-auto border border-rule bg-surface">
-      <table className="w-full border-collapse text-left text-[14px]" aria-label={label}>
-        {children}
-      </table>
+    <div className="stack" aria-busy="true" aria-label="Loading">
+      {Array.from({ length: rows }, (_, index) => (
+        <div key={index} className="skeleton" style={{ height }} />
+      ))}
     </div>
   );
 }
 
-export const th = 'border-b border-rule bg-sunken px-3 py-2 text-[13px] font-medium text-ink-2 whitespace-nowrap';
-export const td = 'border-b border-rule px-3 py-2.5 align-top';
-
-export function Skeleton({ rows = 3 }: { rows?: number }) {
+export function Empty({ icon, title, children, actions }: { icon?: ReactNode; title: string; children?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="space-y-2" aria-busy="true" aria-label="Loading">
-      {Array.from({ length: rows }, (_, index) => (
-        <div key={index} className="h-9 animate-pulse rounded bg-sunken" />
-      ))}
+    <div className="empty">
+      {icon && <span className="icon-tile">{icon}</span>}
+      <h3>{title}</h3>
+      {children && <p>{children}</p>}
+      {actions && <div className="page-head-actions" style={{ marginTop: 8 }}>{actions}</div>}
     </div>
   );
 }
 
 export function KeyValue({ items }: { items: { label: string; value: ReactNode }[] }) {
   return (
-    <dl className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-[max-content_1fr]">
+    <dl className="kv">
       {items.map((item) => (
-        <div key={item.label} className="contents">
-          <dt className="text-[13px] text-ink-3">{item.label}</dt>
-          <dd className="min-w-0 text-[14px] text-ink">{item.value}</dd>
+        <div key={item.label} style={{ display: 'contents' }}>
+          <dt>{item.label}</dt>
+          <dd>{item.value}</dd>
         </div>
       ))}
     </dl>

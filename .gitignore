@@ -16,3 +16,4 @@ contracts/broadcast/*/31337/
 .turbo/
 *.log
 contracts/lib/
+apps/web/AGENTS.md

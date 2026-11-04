@@ -1,14 +1,14 @@
 'use client';
 
 import { PlanPanel } from '@/components/plan-panel';
-import { PageHeader } from '@/components/ui';
+import { PageHead } from '@/components/ui';
 
 export default function ExecutePage() {
   return (
-    <div className="max-w-7xl">
-      <PageHeader
+    <div className="page">
+      <PageHead
         title="Execute approved payments"
-        description="Every payment is signed by the payout wallet itself. This app prepares and records; it never holds keys or sends on its own."
+        description="Every payment is signed by the payout wallet itself. Payout Replay prepares and records; it never holds keys or sends on its own."
       />
       <PlanPanel kind="execution" />
     </div>

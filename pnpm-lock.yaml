@@ -395,6 +395,46 @@ importers:
         specifier: ^5.1.0
         version: 5.1.0(@types/node@26.6.6)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
+  scripts/live:
+    dependencies:
+      '@payout-replay/adapters-evm':
+        specifier: workspace:*
+        version: link:../../packages/adapters-evm
+      '@payout-replay/adapters-native':
+        specifier: workspace:*
+        version: link:../../packages/adapters-native
+      '@payout-replay/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@polkadot/api':
+        specifier: ^17.0.2
+        version: 17.0.2
+      '@polkadot/api-augment':
+        specifier: ^17.0.2
+        version: 17.0.2
+      '@polkadot/keyring':
+        specifier: ^14.0.3
+        version: 14.0.3(@polkadot/util-crypto@14.0.3(@polkadot/util@14.0.3))(@polkadot/util@14.0.3)
+      '@polkadot/util':
+        specifier: ^14.0.3
+        version: 14.0.3
+      '@polkadot/util-crypto':
+        specifier: ^14.0.3
+        version: 14.0.3(@polkadot/util@14.0.3)
+      viem:
+        specifier: ^2.57.16
+        version: 2.57.16(typescript@7.0.2)(zod@4.6.7)
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
 packages:
 
   '@adraffy/ens-normalize@1.11.1':

@@ -1,0 +1,30 @@
+{
+  "name": "@payout-replay/live",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "description": "Tooling for real Portaldot V3 runs: test keys, funding the EVM mapped account, and the S1-S7 scenario runner",
+  "scripts": {
+    "keys": "tsx keys.ts",
+    "fund-evm": "tsx fund-evm.ts",
+    "scenarios": "tsx scenarios.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@payout-replay/adapters-evm": "workspace:*",
+    "@payout-replay/adapters-native": "workspace:*",
+    "@payout-replay/core": "workspace:*",
+    "@polkadot/api": "^17.0.2",
+    "@polkadot/api-augment": "^17.0.2",
+    "@polkadot/keyring": "^14.0.3",
+    "@polkadot/util": "^14.0.3",
+    "@polkadot/util-crypto": "^14.0.3",
+    "viem": "^2.57.16"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

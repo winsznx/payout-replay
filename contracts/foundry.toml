@@ -1,0 +1,21 @@
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+libs = ["lib", "node_modules"]
+solc_version = "0.8.28"
+# Probed on Portaldot V3 (pallet-revive): PUSH0, MCOPY and TSTORE execute, blob
+# opcodes do not. Cancun codegen is safe because the contracts use no blob ops.
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 10000
+bytecode_hash = "none"
+cbor_metadata = false
+remappings = [
+  "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+  "forge-std/=lib/forge-std/src/",
+]
+
+[fuzz]
+runs = 512

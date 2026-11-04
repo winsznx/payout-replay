@@ -282,6 +282,22 @@ importers:
         specifier: ^5.6.1
         version: 5.6.1
 
+  examples/accounting-sync:
+    dependencies:
+      '@payout-replay/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      tsx:
+        specifier: ^4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+
   packages/adapters-evm:
     dependencies:
       '@payout-replay/core':
@@ -346,6 +362,28 @@ importers:
       viem:
         specifier: ^2.57.16
         version: 2.57.16(typescript@7.0.2)(zod@4.6.7)
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.6
+        version: 26.6.6
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: ^5.1.0
+        version: 5.1.0(@types/node@26.6.6)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+
+  packages/sdk:
+    dependencies:
+      '@payout-replay/adapters-evm':
+        specifier: workspace:*
+        version: link:../adapters-evm
+      '@payout-replay/adapters-native':
+        specifier: workspace:*
+        version: link:../adapters-native
+      '@payout-replay/core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       '@types/node':
         specifier: ^26.6.6

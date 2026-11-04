@@ -1,0 +1,33 @@
+{
+  "name": "@payout-replay/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for Payout Replay: manifest validation, reconciliation, recovery planning, chain adapters and a typed REST client",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@payout-replay/adapters-evm": "workspace:*",
+    "@payout-replay/adapters-native": "workspace:*",
+    "@payout-replay/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

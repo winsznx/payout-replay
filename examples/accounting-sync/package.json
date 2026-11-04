@@ -1,0 +1,21 @@
+{
+  "name": "@payout-replay/example-accounting-sync",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "description": "Example integration: pull reconciled payout sheets into an accounting folder and receive signed webhooks",
+  "scripts": {
+    "sync": "tsx src/sync.ts",
+    "webhooks": "tsx src/webhook-receiver.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@payout-replay/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

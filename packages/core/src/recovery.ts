@@ -64,7 +64,7 @@ export function isEligible(state: ObligationState): boolean {
 function eligibleReason(state: ObligationState): string {
   return state.status === 'approved_unattempted'
     ? 'No attempt was ever broadcast for this line.'
-    : `Every prior attempt failed conclusively. ${state.explanation}`;
+    : state.explanation;
 }
 
 export interface CreatePlanInput {
@@ -152,6 +152,8 @@ export function revalidateRecoveryPlan(
   plan: RecoveryPlan,
   fresh: ReconciliationResult,
   now: Date = new Date(),
+  /** Lines about to be signed. Others in the plan may legitimately have been paid since. */
+  obligationIds?: readonly string[],
 ): RevalidationResult {
   const { fingerprint, ...body } = plan;
   if (sha256Digest(canonicalJson(body)) !== fingerprint) {
@@ -164,7 +166,12 @@ export function revalidateRecoveryPlan(
     return { ok: false, code: 'MANIFEST_CHANGED', message: 'manifest version changed since the plan was created', changed: [] };
   }
   const freshById = new Map(fresh.obligations.map((state) => [state.obligationId, state]));
-  const changed = plan.eligible
+  const wanted = obligationIds ? new Set(obligationIds.map((id) => id.toLowerCase())) : null;
+  const targets = wanted ? plan.eligible.filter((line) => wanted.has(line.obligationId.toLowerCase())) : plan.eligible;
+  if (wanted && targets.length !== wanted.size) {
+    return { ok: false, code: 'PLAN_STALE', message: 'some requested lines are not in this plan', changed: [] };
+  }
+  const changed = targets
     .filter((line) => {
       const state = freshById.get(line.obligationId);
       return !state || !isEligible(state);
@@ -178,7 +185,7 @@ export function revalidateRecoveryPlan(
       changed,
     };
   }
-  return { ok: true, eligibleObligationIds: plan.eligible.map((line) => line.obligationId) };
+  return { ok: true, eligibleObligationIds: targets.map((line) => line.obligationId) };
 }
 
 export interface ExecutionGroup {

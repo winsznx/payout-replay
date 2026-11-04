@@ -299,7 +299,7 @@ function LineRow({
         <td className={td}>
           <TickTrail line={line} compact />
         </td>
-        <td className={`${td} max-w-[44ch] text-[13px] text-ink-2`}>
+        <td className={`${td} max-w-[44ch] text-[13px] text-ink-2 [overflow-wrap:anywhere]`}>
           {line.explanation}
           {line.exceptions.map((exception, index) => (
             <span key={`${exception.type}-${index}`} className={`block ${exception.severity === 'critical' ? 'text-failed' : 'text-review'}`}>

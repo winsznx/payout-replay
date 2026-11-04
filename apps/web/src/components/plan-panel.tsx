@@ -16,11 +16,20 @@ import { Button, Notice, Section, StatusMark } from './ui';
  * signing queue. The plan expires; signing revalidates it line by line.
  */
 export function PlanPanel({ kind }: { kind: 'execution' | 'recovery' }) {
-  const { runId, detail, refresh } = useRun();
+  const { runId, detail, lines, refresh } = useRun();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const latest = detail?.latestPlan;
-  const current = latest && ['open', 'revalidated'].includes(latest.status) && Date.parse(latest.plan.expiresAt) > Date.now() ? latest : null;
+  const current =
+    latest && latest.kind === kind && ['open', 'revalidated'].includes(latest.status) && Date.parse(latest.plan.expiresAt) > Date.now() ? latest : null;
+  // A plan is a snapshot. Lines that were attempted since it was built leave the safe column at once;
+  // the server would refuse them anyway when they are revalidated.
+  const statusById = new Map((lines ?? []).map((line) => [line.obligationId, line.status]));
+  const stillSafe = current?.plan.eligible.filter((line) => {
+    const status = statusById.get(line.obligationId);
+    return status === undefined || status === 'approved_unattempted' || status === 'failed_verified';
+  }) ?? [];
+  const movedOn = current?.plan.eligible.filter((line) => !stillSafe.includes(line)) ?? [];
 
   const build = async () => {
     setBusy(true);
@@ -64,8 +73,13 @@ export function PlanPanel({ kind }: { kind: 'execution' | 'recovery' }) {
       {current && (
         <div className="mt-6 grid gap-8 xl:grid-cols-[3fr_2fr]">
           <div>
-            <h2 className="mb-3 text-[17px] font-semibold">Safe to pay ({current.plan.eligible.length})</h2>
-            <PaymentQueue runId={runId} planId={current.id} lines={current.plan.eligible} onChange={() => void refresh()} />
+            <h2 className="mb-3 text-[17px] font-semibold">Safe to pay ({stillSafe.length})</h2>
+            <PaymentQueue runId={runId} planId={current.id} lines={current.plan.eligible} statusById={statusById} onChange={() => void refresh()} />
+            {movedOn.length > 0 && (
+              <p className="mt-3 text-[13px] text-ink-3">
+                Attempted since this plan was built: {movedOn.map((line) => line.lineId).join(', ')}. Follow them on the settlement screen.
+              </p>
+            )}
           </div>
           <div>
             <h2 className="mb-3 text-[17px] font-semibold">Blocked ({current.plan.blocked.length})</h2>

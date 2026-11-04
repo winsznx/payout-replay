@@ -6,9 +6,9 @@ import { apiPost, errorMessage } from '@/lib/api';
 import { connectEvm, sendEvmCall, waitForEvmReceipt } from '@/lib/evm-wallet';
 import { formatBaseUnits } from '@/lib/format';
 import { sendNativeTransfer } from '@/lib/native-wallet';
-import type { EligibleLine, Environment, EvmTransferPayload, NativeTransferPayload, UnsignedTransfer } from '@/lib/types';
+import type { EligibleLine, Environment, EvmTransferPayload, NativeTransferPayload, ObligationStatus, UnsignedTransfer } from '@/lib/types';
 
-import { Button, Notice } from './ui';
+import { Button, Notice, StatusMark } from './ui';
 
 type Step = { kind: 'idle' } | { kind: 'working'; message: string } | { kind: 'done'; message: string } | { kind: 'error'; message: string };
 
@@ -48,7 +48,7 @@ async function payEvmLine(runId: string, planId: string, line: EligibleLine, rep
 
   const attemptKey = `attempt-${planId}-${line.obligationId}-${Date.now()}`;
   const attempt = await apiPost<{ id: string }>(`/runs/${runId}/attempts`, { planId, obligationId: line.obligationId }, { idempotencyKey: attemptKey });
-  report('Confirm the payment in your wallet');
+  report(`Confirm ${transfer.method} in your wallet. Your wallet shows the network fee.`);
   const sent = await sendEvmCall(account, transfer.payload.execute);
   if (sent.kind === 'rejected') {
     await apiPost(`/attempts/${attempt.id}/result`, { phase: 'signature_rejected' });
@@ -69,7 +69,8 @@ async function payNativeLine(runId: string, planId: string, line: EligibleLine, 
   if (problem) throw new Error(problem);
   const attemptKey = `attempt-${planId}-${line.obligationId}-${Date.now()}`;
   const attempt = await apiPost<{ id: string }>(`/runs/${runId}/attempts`, { planId, obligationId: line.obligationId }, { idempotencyKey: attemptKey });
-  report('Confirm Balances.transfer_keep_alive in your extension');
+  const fee = transfer.estimatedFee ? ` Estimated fee ${formatBaseUnits(transfer.estimatedFee.amountBaseUnits, transfer.estimatedFee.decimals)} ${transfer.estimatedFee.symbol}.` : '';
+  report(`Confirm ${transfer.method} in your extension.${fee}`);
   let sent;
   try {
     sent = await sendNativeTransfer(line.payer, transfer.payload);
@@ -92,7 +93,19 @@ async function payNativeLine(runId: string, planId: string, line: EligibleLine, 
     : `Signed ${sent.txHash} but the broadcast result is unknown (${sent.error ?? 'no detail'}). The line stays blocked until its era closes or it appears on-chain.`;
 }
 
-export function PaymentQueue({ runId, planId, lines, onChange }: { runId: string; planId: string; lines: EligibleLine[]; onChange(): void }) {
+export function PaymentQueue({
+  runId,
+  planId,
+  lines,
+  statusById,
+  onChange,
+}: {
+  runId: string;
+  planId: string;
+  lines: EligibleLine[];
+  statusById: ReadonlyMap<string, ObligationStatus>;
+  onChange(): void;
+}) {
   const [steps, setSteps] = useState<Record<string, Step>>({});
   const set = (id: string, step: Step) => setSteps((current) => ({ ...current, [id]: step }));
   const groups = (['native', 'evm'] as const).map((environment) => ({ environment, lines: lines.filter((line) => line.environment === environment) })).filter((group) => group.lines.length > 0);
@@ -125,6 +138,8 @@ export function PaymentQueue({ runId, planId, lines, onChange }: { runId: string
           <ul className="divide-y divide-rule border border-rule bg-surface">
             {group.lines.map((line) => {
               const step = steps[line.obligationId] ?? { kind: 'idle' };
+              const status = statusById.get(line.obligationId);
+              const safe = status === undefined || status === 'approved_unattempted' || status === 'failed_verified';
               return (
                 <li key={line.obligationId} className="grid gap-3 px-4 py-3 md:grid-cols-[1fr_auto]">
                   <div className="min-w-0">
@@ -149,14 +164,13 @@ export function PaymentQueue({ runId, planId, lines, onChange }: { runId: string
                     )}
                   </div>
                   <div className="flex items-start">
-                    <Button
-                      variant="primary"
-                      busy={step.kind === 'working'}
-                      disabled={anyWorking || step.kind === 'done'}
-                      onClick={() => void pay(line)}
-                    >
-                      {step.kind === 'done' ? 'Sent' : `Sign payment for ${line.lineId}`}
-                    </Button>
+                    {safe || step.kind === 'working' ? (
+                      <Button variant="primary" busy={step.kind === 'working'} disabled={anyWorking} onClick={() => void pay(line)}>
+                        {`Sign payment for ${line.lineId}`}
+                      </Button>
+                    ) : (
+                      status && <StatusMark status={status} />
+                    )}
                   </div>
                 </li>
               );

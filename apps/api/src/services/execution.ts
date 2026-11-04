@@ -141,16 +141,19 @@ export async function revalidatePlan(
   if (!run) throw new ApiError('NOT_FOUND', 'run not found');
   if (!['open', 'revalidated'].includes(row.status)) throw new ApiError('PLAN_STALE', `plan is ${row.status}; create a new plan`);
 
+  const wanted = new Set((input.obligationIds ?? plan.eligible.map((line) => line.obligationId)).map((id) => id.toLowerCase()));
+  const lines = plan.eligible.filter((line) => line.environment === input.environment && wanted.has(line.obligationId.toLowerCase()));
+  if (lines.length === 0) throw new ApiError('UNPROCESSABLE', `no eligible ${input.environment} lines in this plan`);
+
   const state = await requireFreshState(services, run);
-  const verdict = revalidateRecoveryPlan(plan, state.reconciliation);
+  const verdict = revalidateRecoveryPlan(plan, state.reconciliation, new Date(), lines.map((line) => line.obligationId));
   if (!verdict.ok) {
-    await services.db.update(recoveryPlans).set({ status: 'stale' }).where(eq(recoveryPlans.id, planId));
+    // Expiry and tampering kill the whole plan; a line that moved on only blocks that line.
+    if (verdict.code !== 'PLAN_STALE') {
+      await services.db.update(recoveryPlans).set({ status: verdict.code === 'PLAN_EXPIRED' ? 'expired' : 'stale' }).where(eq(recoveryPlans.id, planId));
+    }
     throw new ApiError(verdict.code === 'PLAN_EXPIRED' ? 'PLAN_EXPIRED' : 'PLAN_STALE', verdict.message, { changed: verdict.changed });
   }
-
-  const wanted = new Set(input.obligationIds ?? plan.eligible.map((line) => line.obligationId));
-  const lines = plan.eligible.filter((line) => line.environment === input.environment && wanted.has(line.obligationId));
-  if (lines.length === 0) throw new ApiError('UNPROCESSABLE', `no eligible ${input.environment} lines in this plan`);
   const payer = lines[0]!.payer;
   if (!(await userControls(services, user.userId, input.environment, payer))) {
     throw new ApiError('WRONG_WALLET', `sign in with or link the ${input.environment} payout wallet ${payer} to prepare these payments`);
@@ -166,7 +169,6 @@ export async function revalidatePlan(
     }
   }
   if (transfers.some((transfer) => transfer.preflight.some((issue) => issue.code === 'ALREADY_EXECUTED'))) {
-    await services.db.update(recoveryPlans).set({ status: 'stale' }).where(eq(recoveryPlans.id, planId));
     throw new ApiError('PLAN_STALE', 'the executor already recorded one of these obligations; reconcile before paying', {
       transfers: transfers.filter((transfer) => transfer.preflight.some((issue) => issue.code === 'ALREADY_EXECUTED')).map((t) => t.obligationId),
     });

@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { type DragEvent, Suspense, useState } from 'react';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 
 import { Button, CopyText, Notice, PageHeader, Section, Table, td, th } from '@/components/ui';
 import { apiPost, errorMessage, fetcher } from '@/lib/api';
@@ -97,6 +97,7 @@ function ImportScreen() {
     setError(null);
     try {
       await apiPost(`/runs/${runId}/freeze`, { acknowledgeDuplicates: acknowledged });
+      await mutate(`/runs/${runId}`);
       router.push(`/app/runs/${runId}/review`);
     } catch (caught) {
       setError(errorMessage(caught));

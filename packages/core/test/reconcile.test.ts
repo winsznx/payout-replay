@@ -234,6 +234,23 @@ describe('recovery planning', () => {
   });
 
   type Plan = ReturnType<typeof createRecoveryPlan>;
+  it('should let the remaining lines of a plan be signed after another line in it was paid', () => {
+    // #given a plan with two eligible lines, one of which is then paid
+    const plan = createRecoveryPlan({ frozen, reconciliation: run([]), chainSnapshot: snapshot, now });
+    const fresh = run([attempt(nativeLine.obligationId, paidNative())]);
+    // #when only the unpaid line is revalidated
+    const subset = revalidateRecoveryPlan(plan, fresh, now, [evmLine.obligationId]);
+    const whole = revalidateRecoveryPlan(plan, fresh, now);
+    // #then the subset passes while the whole plan is stale
+    expect([subset.ok, whole.ok]).toEqual([true, false]);
+  });
+
+  it('should refuse to revalidate lines that are not in the plan', () => {
+    const plan = createRecoveryPlan({ frozen, reconciliation: scenario(), chainSnapshot: snapshot, now });
+    const result = revalidateRecoveryPlan(plan, scenario(), now, [nativeLine.obligationId]);
+    expect(result.ok).toBe(false);
+  });
+
   it.each<[string, (plan: Plan) => [Plan, Date], string]>([
     ['expired', (plan) => [plan, new Date(now.getTime() + 10 * 60_000)], 'PLAN_EXPIRED'],
     ['tampered', (plan) => [{ ...plan, eligible: [...plan.eligible, ...plan.eligible] }, now], 'PLAN_TAMPERED'],

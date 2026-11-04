@@ -99,6 +99,11 @@ describe('reconcileObligation', () => {
     expect([statusOf(allFailed, evmLine.obligationId), statusOf(oneUnknown, evmLine.obligationId)]).toEqual(['failed_verified', 'needs_review']);
   });
 
+  it('should hold a prepared attempt as awaiting_signature so it cannot be offered again', () => {
+    const result = run([attempt(evmLine.obligationId, { kind: 'pending', detail: 'wallet prompt open' }, { phase: 'prepared' })]);
+    expect(statusOf(result, evmLine.obligationId)).toBe('awaiting_signature');
+  });
+
   it('should keep a rejected signature as unattempted', () => {
     const result = run([attempt(evmLine.obligationId, { kind: 'not_broadcast' }, { phase: 'signature_rejected' })]);
     expect(statusOf(result, evmLine.obligationId)).toBe('approved_unattempted');

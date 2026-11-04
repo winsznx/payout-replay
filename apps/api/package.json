@@ -1,0 +1,37 @@
+{
+  "name": "@payout-replay/api",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/server.ts",
+    "start": "node --env-file-if-exists=.env dist/server.js",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx --env-file=.env src/db/migrate.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.6",
+    "@payout-replay/adapters-evm": "workspace:*",
+    "@payout-replay/adapters-native": "workspace:*",
+    "@payout-replay/core": "workspace:*",
+    "@polkadot/util": "^14.0.3",
+    "@polkadot/util-crypto": "^14.0.3",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.16",
+    "jose": "^6.2.15",
+    "postgres": "^4.0.0",
+    "viem": "^2.57.16",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}

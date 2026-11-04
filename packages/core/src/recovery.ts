@@ -48,6 +48,7 @@ export const DEFAULT_PLAN_TTL_MS = 5 * 60 * 1000;
 
 const BLOCK_REASONS: Record<Exclude<ObligationStatus, 'approved_unattempted' | 'failed_verified'>, string> = {
   paid_verified: 'Already paid and verified on-chain; paying again would be a duplicate.',
+  awaiting_signature: 'A signature request is open for this line.',
   submitted: 'An attempt is in flight; it may still land.',
   confirming: 'Included in a block and waiting for finality.',
   incorrect: 'A finalized transfer does not match the approval; needs a human decision, not an automatic retry.',

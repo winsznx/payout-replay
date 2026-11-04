@@ -71,6 +71,7 @@ export interface ManualResolution {
 
 export type ObligationStatus =
   | 'approved_unattempted'
+  | 'awaiting_signature'
   | 'submitted'
   | 'confirming'
   | 'paid_verified'
@@ -333,6 +334,15 @@ export function reconcileObligation(
       exceptions,
     };
   }
+  if (inFlight.length > 0 && inFlight.every((attempt) => attempt.phase === 'prepared')) {
+    return {
+      ...base,
+      status: 'awaiting_signature',
+      explanation: 'Waiting for the payout wallet to sign; nothing has been broadcast yet.',
+      allAttemptsFinalAndFailed: false,
+      exceptions,
+    };
+  }
   if (inFlight.length > 0) {
     return {
       ...base,
@@ -368,6 +378,7 @@ export function reconcileObligation(
 
 const ALL_STATUSES: ObligationStatus[] = [
   'approved_unattempted',
+  'awaiting_signature',
   'submitted',
   'confirming',
   'paid_verified',
@@ -380,7 +391,7 @@ const ALL_STATUSES: ObligationStatus[] = [
 export function deriveRunStatus(states: readonly ObligationState[]): RunStatus {
   const has = (status: ObligationStatus) => states.some((state) => state.status === status);
   if (has('needs_review') || has('incorrect')) return 'needs_review';
-  if (has('submitted') || has('confirming')) return 'reconciling';
+  if (has('submitted') || has('confirming') || has('awaiting_signature')) return 'reconciling';
   const allSettled = states.every((state) => state.status === 'paid_verified' || state.status === 'manually_resolved');
   const anyOpenException = states.some((state) => state.exceptions.some((exception) => exception.severity === 'critical'));
   if (allSettled && !anyOpenException) return 'complete';

@@ -1,0 +1,17 @@
+internal/
+node_modules/
+.pnpm-store/
+dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/31337/
+.turbo/
+*.log

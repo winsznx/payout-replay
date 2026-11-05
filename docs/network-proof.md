@@ -44,7 +44,16 @@ EVM balances read through `eth_getBalance` use 18 decimals, which is the native 
 
 ## Deployment
 
-Contract addresses, code hash, compiler settings and deployment transactions are written by `scripts/live/deploy.ts` and copied into [real-run-results.md](real-run-results.md) once the V3 deployment is done.
+Deployed on 2026-11-05 from the EVM payout key with `scripts/live/deploy.ts`. Compiler: solc 0.8.28, evm_version cancun, optimizer 10000 runs, no CBOR metadata.
+
+| Contract | Address | Transaction |
+|---|---|---|
+| PayoutExecutor | `0x09a46d341cBB557b84311aAA8A95cB40992464e1` | `0x529ac79279e8e899c188e507e3600f27257cc19e23ab5464dfb34b9aff8476fc` (block 326175) |
+| TEST TOKEN PRT | `0x07f843390b48470347Cb435451cB26DE798A1330` | `0x6e1b37bb7b50e0a46f0834ad8c5f1a1b2aa2f108f3abe7fb302d0fe13cc982f2` |
+
+Token allowlisting was `0x35d6641740f6809120af0dc7e32574581dcb2fbef0abfb726b3443d9fa71f502` and the demo mint was `0x65f50930658b930d2f5fee7fe7e68d90ff67f19ad550a3f7673f70d75c9b05f0`. The executor runtime code hash is `0x51eb5a3948cffbfb026d84fd6e09af2dcee1df87d613e56ab9dcefce88289556`, which `/health/chain` re-reads and compares on every check.
+
+Deploying is expensive on V3, and the huge `eth_estimateGas` values are not padding. Revive meters storage deposits as gas: `depositPerByte` is 6·10^12 planck (0.06 tPOT per byte of runtime code), and a further 30% of that is locked against the code hash. The 3.2 KB executor charged 275 tPOT and the token about 249. Storage-writing calls such as `approve` cost 2 to 4 tPOT each. Since a fixed EVM-style gas limit like 3,000,000 is rejected outright, the scenario runner sizes the gas for reverting transactions from a real estimate of a successful call.
 
 ## Other sources
 

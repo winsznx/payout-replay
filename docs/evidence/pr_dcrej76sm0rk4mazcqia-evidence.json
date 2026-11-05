@@ -1,0 +1,549 @@
+{
+  "schema": "payout-replay/evidence@1",
+  "generatedAt": "2026-11-05T21:48:38.031Z",
+  "run": {
+    "id": "pr_dcrej76sm0rk4mazcqia",
+    "name": "Live V3 scenarios 2026-11-05T21:45",
+    "status": "needs_review",
+    "lastReconciledAt": "2026-11-05T21:48:32.359Z"
+  },
+  "sourceFile": {
+    "sha256": "53468957f2d8b8912f3fbbfb539faf94438e1fd2405f874cd40bd4c6da52d1d4",
+    "name": "live-scenarios.csv"
+  },
+  "manifest": {
+    "version": 1,
+    "digest": "sha256:ee8b748e02d19d8d4b37f9e1bdbef5bbab4b4a15a38951c1509ba75bc411b8e3",
+    "canonicalJson": "{\"network\":{\"evm\":{\"chainId\":420420777,\"executorAddress\":\"0x09a46d341cBB557b84311aAA8A95cB40992464e1\"},\"native\":{\"genesisHash\":\"0xd4f9acbcf7f52388d8b095abe3c198d19fc510e0343e643e87cfbccb155283bd\",\"specName\":\"portaldot-v3\",\"specVersion\":3002,\"ss58Prefix\":42,\"tokenDecimals\":14,\"tokenSymbol\":\"tPOT\"}},\"obligations\":[{\"amountBaseUnits\":\"150000000000000\",\"assetId\":\"tPOT\",\"decimals\":14,\"destination\":\"5DXQLZrcLvk3Pc24Z6ZCCGX8xPmqiz3y1ecpg5xswfRqtCG7\",\"environment\":\"native\",\"lineId\":\"S1-A\",\"obligationId\":\"0xbeca49020b674b3c38d288c99941addaae59c35239b4dda7dd320b4378f2c79d\",\"payer\":\"5G6rYDiHS993CPq4sgSskE7m4UuYUPPZxpS7Lc7LX1Dg5y9g\",\"recipientName\":\"Native recipient A\",\"reference\":\"S1-A\",\"symbol\":\"tPOT\"},{\"amountBaseUnits\":\"25000000000000\",\"assetId\":\"tPOT\",\"decimals\":14,\"destination\":\"5F1VMNUQ5JL8JfEojjE2AYf1MvYdHtwynY7nBwapkDvRLxSJ\",\"environment\":\"native\",\"lineId\":\"S1-B\",\"obligationId\":\"0xa352642f3423c1f4c0a50dff0cab25b6f8b910259fa8584b7b43e01a8dbe4d5d\",\"payer\":\"5G6rYDiHS993CPq4sgSskE7m4UuYUPPZxpS7Lc7LX1Dg5y9g\",\"recipientName\":\"Native recipient B\",\"reference\":\"S1-B\",\"symbol\":\"tPOT\"},{\"amountBaseUnits\":\"25000000\",\"assetId\":\"0x07f843390b48470347Cb435451cB26DE798A1330\",\"decimals\":6,\"destination\":\"0x058C96A57F4C49e21eA2828b2C4cf3902af8C69F\",\"environment\":\"evm\",\"lineId\":\"S2\",\"obligationId\":\"0x6ebd1f361f93696f036ad62f29581b54a75b6f42db9d6200fc62bb3858400400\",\"payer\":\"0x380785F4f466D5C71361F3A2823BCe2d6d87BB90\",\"recipientName\":\"EVM recipient A\",\"reference\":\"S2\",\"symbol\":\"PRT\"},{\"amountBaseUnits\":\"40500000\",\"assetId\":\"0x07f843390b48470347Cb435451cB26DE798A1330\",\"decimals\":6,\"destination\":\"0xf1B1d33860A8B99ABB05A7f76d7346e07DFA27bD\",\"environment\":\"evm\",\"lineId\":\"S3\",\"obligationId\":\"0xfa2b817da0c9e5c6da5d09f24500835db5fdb2fc764a1293c6ad4a063ec0affb\",\"payer\":\"0x380785F4f466D5C71361F3A2823BCe2d6d87BB90\",\"recipientName\":\"EVM recipient B\",\"reference\":\"S3\",\"symbol\":\"PRT\"},{\"amountBaseUnits\":\"10000000\",\"assetId\":\"0x07f843390b48470347Cb435451cB26DE798A1330\",\"decimals\":6,\"destination\":\"0xc89cBb151e374991Ec4c9913e717c97FA947a864\",\"environment\":\"evm\",\"lineId\":\"S5\",\"obligationId\":\"0xe13f96ecff5da3f6d71c88c1e604852406aa7503d406833377cbac0e2114529b\",\"payer\":\"0x380785F4f466D5C71361F3A2823BCe2d6d87BB90\",\"recipientName\":\"EVM recipient C\",\"reference\":\"S5\",\"symbol\":\"PRT\"}],\"payers\":{\"evm\":\"0x380785F4f466D5C71361F3A2823BCe2d6d87BB90\",\"native\":\"5G6rYDiHS993CPq4sgSskE7m4UuYUPPZxpS7Lc7LX1Dg5y9g\"},\"runId\":\"pr_dcrej76sm0rk4mazcqia\",\"schema\":\"payout-replay/manifest@1\",\"totals\":[{\"amountBaseUnits\":\"75500000\",\"assetId\":\"0x07f843390b48470347Cb435451cB26DE798A1330\",\"count\":3,\"decimals\":6,\"environment\":\"evm\",\"symbol\":\"PRT\"},{\"amountBaseUnits\":\"175000000000000\",\"assetId\":\"tPOT\",\"count\":2,\"decimals\":14,\"environment\":\"native\",\"symbol\":\"tPOT\"}],\"version\":1}"
+  },
+  "approvals": [
+    {
+      "reviewerId": "usr_u9mrpa4uhdztbda7gyr8",
+      "decision": "approve",
+      "method": "off-chain-app",
+      "digest": "sha256:ee8b748e02d19d8d4b37f9e1bdbef5bbab4b4a15a38951c1509ba75bc411b8e3",
+      "at": "2026-11-05T21:45:59.429Z"
+    }
+  ],
+  "reconciliation": {
+    "status": "needs_review",
+    "counts": {
+      "approved_unattempted": 0,
+      "awaiting_signature": 0,
+      "submitted": 0,
+      "confirming": 0,
+      "paid_verified": 4,
+      "failed_verified": 0,
+      "incorrect": 0,
+      "needs_review": 1,
+      "manually_resolved": 0
+    },
+    "partition": [
+      {
+        "environment": "evm",
+        "assetId": "0x07f843390b48470347Cb435451cB26DE798A1330",
+        "symbol": "PRT",
+        "decimals": 6,
+        "totalBaseUnits": "75500000",
+        "verifiedBaseUnits": "65500000",
+        "outstandingBaseUnits": "10000000",
+        "total": "75.5",
+        "verified": "65.5",
+        "outstanding": "10"
+      },
+      {
+        "environment": "native",
+        "assetId": "tPOT",
+        "symbol": "tPOT",
+        "decimals": 14,
+        "totalBaseUnits": "175000000000000",
+        "verifiedBaseUnits": "175000000000000",
+        "outstandingBaseUnits": "0",
+        "total": "1.75",
+        "verified": "1.75",
+        "outstanding": "0"
+      }
+    ],
+    "obligations": [
+      {
+        "obligationId": "0xbeca49020b674b3c38d288c99941addaae59c35239b4dda7dd320b4378f2c79d",
+        "lineId": "S1-A",
+        "latestAttemptId": "att_04jg8ih1g53kt1yi7frn",
+        "status": "paid_verified",
+        "explanation": "Finalized transfer 0xf33507cbd0b07ec6f1e6e485ed3cf945b30252d52bae8b73f8ad3e2ef581fa38 in block 340141 matches payer, recipient, asset and amount.",
+        "settledBy": {
+          "attemptId": "att_04jg8ih1g53kt1yi7frn",
+          "evidence": {
+            "txHash": "0xf33507cbd0b07ec6f1e6e485ed3cf945b30252d52bae8b73f8ad3e2ef581fa38",
+            "provider": "portaldot-v3-node",
+            "blockHash": "0x42fb413ec647f99725c3d06088f8b947d5b9845e8aa51f08de2c7be6af5b3793",
+            "finalized": true,
+            "observedAt": "2026-11-05T21:46:43.189Z",
+            "blockNumber": "340141",
+            "extrinsicIndex": 1
+          }
+        },
+        "allAttemptsFinalAndFailed": false,
+        "exceptions": []
+      },
+      {
+        "obligationId": "0xa352642f3423c1f4c0a50dff0cab25b6f8b910259fa8584b7b43e01a8dbe4d5d",
+        "lineId": "S1-B",
+        "latestAttemptId": "att_cfm12ee2nz0txt90nfdx",
+        "status": "paid_verified",
+        "explanation": "Finalized transfer 0xb682cbffb45c9f1e68e3af22d72d2acc7a24c7f95dd3e918ca5a7047b3a6d3cf in block 340143 matches payer, recipient, asset and amount.",
+        "settledBy": {
+          "attemptId": "att_cfm12ee2nz0txt90nfdx",
+          "evidence": {
+            "txHash": "0xb682cbffb45c9f1e68e3af22d72d2acc7a24c7f95dd3e918ca5a7047b3a6d3cf",
+            "provider": "portaldot-v3-node",
+            "blockHash": "0xf6e10bb7a4dbac659ccd0854efa4ecd607f4aba4622463661a1b9c6bc7f4705c",
+            "finalized": true,
+            "observedAt": "2026-11-05T21:46:50.258Z",
+            "blockNumber": "340143",
+            "extrinsicIndex": 1
+          }
+        },
+        "allAttemptsFinalAndFailed": false,
+        "exceptions": []
+      },
+      {
+        "obligationId": "0x6ebd1f361f93696f036ad62f29581b54a75b6f42db9d6200fc62bb3858400400",
+        "lineId": "S2",
+        "latestAttemptId": "att_fq51hqstqbz5ky1i89sa",
+        "status": "paid_verified",
+        "explanation": "Finalized transfer 0x6e1972793f9fd1240f93dc6b9e3352d44b748b87cc5597032902827a8f540887 in block 340148 matches payer, recipient, asset and amount.",
+        "settledBy": {
+          "attemptId": "att_fq51hqstqbz5ky1i89sa",
+          "evidence": {
+            "txHash": "0x6e1972793f9fd1240f93dc6b9e3352d44b748b87cc5597032902827a8f540887",
+            "logIndex": 4,
+            "provider": "portaldot-v3-evm-rpc",
+            "blockHash": "0x6262afd904cb3af709f665ac14a5a0ed9441062ee61da8e404c9dba08091987f",
+            "finalized": true,
+            "observedAt": "2026-11-05T21:47:21.584Z",
+            "blockNumber": "340148"
+          }
+        },
+        "allAttemptsFinalAndFailed": false,
+        "exceptions": []
+      },
+      {
+        "obligationId": "0xfa2b817da0c9e5c6da5d09f24500835db5fdb2fc764a1293c6ad4a063ec0affb",
+        "lineId": "S3",
+        "latestAttemptId": "att_5uymgz9g49f1x3dtx9an",
+        "status": "paid_verified",
+        "explanation": "Finalized transfer 0xc95237da72895d52f55076e622477bf2ce1b17719d48b3f585ca09806bfc8d16 in block 340158 matches payer, recipient, asset and amount.",
+        "settledBy": {
+          "attemptId": "att_5uymgz9g49f1x3dtx9an",
+          "evidence": {
+            "txHash": "0xc95237da72895d52f55076e622477bf2ce1b17719d48b3f585ca09806bfc8d16",
+            "logIndex": 5,
+            "provider": "portaldot-v3-evm-rpc",
+            "blockHash": "0x73606ec5ca6c8d597fdb1e36a59f0e09aa524d13761120b76ab7337ff363db7a",
+            "finalized": true,
+            "observedAt": "2026-11-05T21:48:24.466Z",
+            "blockNumber": "340158"
+          }
+        },
+        "allAttemptsFinalAndFailed": false,
+        "exceptions": []
+      },
+      {
+        "obligationId": "0xe13f96ecff5da3f6d71c88c1e604852406aa7503d406833377cbac0e2114529b",
+        "lineId": "S5",
+        "latestAttemptId": "att_0d6s5nqm1vh3b9kn49rh",
+        "status": "needs_review",
+        "explanation": "At least one attempt has an outcome that cannot be established, so retrying could pay twice.",
+        "allAttemptsFinalAndFailed": false,
+        "exceptions": [
+          {
+            "type": "outcome_unknown",
+            "severity": "warning",
+            "obligationId": "0xe13f96ecff5da3f6d71c88c1e604852406aa7503d406833377cbac0e2114529b",
+            "attemptId": "att_0d6s5nqm1vh3b9kn49rh",
+            "message": "submission outcome unknown and no transaction identity was recorded"
+          }
+        ]
+      }
+    ],
+    "exceptions": [
+      {
+        "type": "outcome_unknown",
+        "severity": "warning",
+        "obligationId": "0xe13f96ecff5da3f6d71c88c1e604852406aa7503d406833377cbac0e2114529b",
+        "attemptId": "att_0d6s5nqm1vh3b9kn49rh",
+        "message": "submission outcome unknown and no transaction identity was recorded"
+      }
+    ]
+  },
+  "attempts": [
+    {
+      "id": "att_0d6s5nqm1vh3b9kn49rh",
+      "obligationId": "0xe13f96ecff5da3f6d71c88c1e604852406aa7503d406833377cbac0e2114529b",
+      "attemptNumber": 1,
+      "source": "app",
+      "environment": "evm",
+      "payer": "0x380785F4f466D5C71361F3A2823BCe2d6d87BB90",
+      "phase": "submission_unknown",
+      "txHash": null,
+      "nonce": null,
+      "outcome": {
+        "kind": "unknown",
+        "detail": "submission outcome unknown and no transaction identity was recorded"
+      },
+      "preparedAt": "2026-11-05T21:47:27.707Z",
+      "submittedAt": "2026-11-05T21:47:27.722Z",
+      "finalizedAt": null
+    },
+    {
+      "id": "att_fq51hqstqbz5ky1i89sa",
+      "obligationId": "0x6ebd1f361f93696f036ad62f29581b54a75b6f42db9d6200fc62bb3858400400",
+      "attemptNumber": 1,
+      "source": "app",
+      "environment": "evm",
+      "payer": "0x380785F4f466D5C71361F3A2823BCe2d6d87BB90",
+      "phase": "submitted",
+      "txHash": "0x6e1972793f9fd1240f93dc6b9e3352d44b748b87cc5597032902827a8f540887",
+      "nonce": 15,
+      "outcome": {
+        "kind": "finalized_success",
+        "evidence": {
+          "txHash": "0x6e1972793f9fd1240f93dc6b9e3352d44b748b87cc5597032902827a8f540887",
+          "logIndex": 4,
+          "provider": "portaldot-v3-evm-rpc",
+          "blockHash": "0x6262afd904cb3af709f665ac14a5a0ed9441062ee61da8e404c9dba08091987f",
+          "finalized": true,
+          "observedAt": "2026-11-05T21:47:21.584Z",
+          "blockNumber": "340148"
+        },
+        "transfers": [
+          {
+            "to": "0x058C96A57F4C49e21eA2828b2C4cf3902af8C69F",
+            "from": "0x380785F4f466D5C71361F3A2823BCe2d6d87BB90",
+            "assetId": "0x07f843390b48470347Cb435451cB26DE798A1330",
+            "environment": "evm",
+            "obligationId": "0x6ebd1f361f93696f036ad62f29581b54a75b6f42db9d6200fc62bb3858400400",
+            "manifestDigest": "sha256:ee8b748e02d19d8d4b37f9e1bdbef5bbab4b4a15a38951c1509ba75bc411b8e3",
+            "amountBaseUnits": "25000000"
+          }
+        ]
+      },
+      "preparedAt": "2026-11-05T21:46:54.972Z",
+      "submittedAt": "2026-11-05T21:47:00.284Z",
+      "finalizedAt": "2026-11-05T21:47:21.584Z"
+    },
+    {
+      "id": "att_04jg8ih1g53kt1yi7frn",
+      "obligationId": "0xbeca49020b674b3c38d288c99941addaae59c35239b4dda7dd320b4378f2c79d",
+      "attemptNumber": 1,
+      "source": "app",
+      "environment": "native",
+      "payer": "5G6rYDiHS993CPq4sgSskE7m4UuYUPPZxpS7Lc7LX1Dg5y9g",
+      "phase": "submitted",
+      "txHash": "0xf33507cbd0b07ec6f1e6e485ed3cf945b30252d52bae8b73f8ad3e2ef581fa38",
+      "nonce": 8,
+      "outcome": {
+        "kind": "finalized_success",
+        "evidence": {
+          "txHash": "0xf33507cbd0b07ec6f1e6e485ed3cf945b30252d52bae8b73f8ad3e2ef581fa38",
+          "provider": "portaldot-v3-node",
+          "blockHash": "0x42fb413ec647f99725c3d06088f8b947d5b9845e8aa51f08de2c7be6af5b3793",
+          "finalized": true,
+          "observedAt": "2026-11-05T21:46:43.189Z",
+          "blockNumber": "340141",
+          "extrinsicIndex": 1
+        },
+        "transfers": [
+          {
+            "to": "5DXQLZrcLvk3Pc24Z6ZCCGX8xPmqiz3y1ecpg5xswfRqtCG7",
+            "from": "5G6rYDiHS993CPq4sgSskE7m4UuYUPPZxpS7Lc7LX1Dg5y9g",
+            "assetId": "tPOT",
+            "environment": "native",
+            "amountBaseUnits": "150000000000000"
+          }
+        ]
+      },
+      "preparedAt": "2026-11-05T21:46:06.596Z",
+      "submittedAt": "2026-11-05T21:46:13.421Z",
+      "finalizedAt": "2026-11-05T21:46:43.189Z"
+    },
+    {
+      "id": "att_cfm12ee2nz0txt90nfdx",
+      "obligationId": "0xa352642f3423c1f4c0a50dff0cab25b6f8b910259fa8584b7b43e01a8dbe4d5d",
+      "attemptNumber": 1,
+      "source": "app",
+      "environment": "native",
+      "payer": "5G6rYDiHS993CPq4sgSskE7m4UuYUPPZxpS7Lc7LX1Dg5y9g",
+      "phase": "submitted",
+      "txHash": "0xb682cbffb45c9f1e68e3af22d72d2acc7a24c7f95dd3e918ca5a7047b3a6d3cf",
+      "nonce": 9,
+      "outcome": {
+        "kind": "finalized_success",
+        "evidence": {
+          "txHash": "0xb682cbffb45c9f1e68e3af22d72d2acc7a24c7f95dd3e918ca5a7047b3a6d3cf",
+          "provider": "portaldot-v3-node",
+          "blockHash": "0xf6e10bb7a4dbac659ccd0854efa4ecd607f4aba4622463661a1b9c6bc7f4705c",
+          "finalized": true,
+          "observedAt": "2026-11-05T21:46:50.258Z",
+          "blockNumber": "340143",
+          "extrinsicIndex": 1
+        },
+        "transfers": [
+          {
+            "to": "5F1VMNUQ5JL8JfEojjE2AYf1MvYdHtwynY7nBwapkDvRLxSJ",
+            "from": "5G6rYDiHS993CPq4sgSskE7m4UuYUPPZxpS7Lc7LX1Dg5y9g",
+            "assetId": "tPOT",
+            "environment": "native",
+            "amountBaseUnits": "25000000000000"
+          }
+        ]
+      },
+      "preparedAt": "2026-11-05T21:46:26.957Z",
+      "submittedAt": "2026-11-05T21:46:37.560Z",
+      "finalizedAt": "2026-11-05T21:46:50.258Z"
+    },
+    {
+      "id": "att_pm79jdr3dgmjn6zs1a6z",
+      "obligationId": "0xfa2b817da0c9e5c6da5d09f24500835db5fdb2fc764a1293c6ad4a063ec0affb",
+      "attemptNumber": 1,
+      "source": "app",
+      "environment": "evm",
+      "payer": "0x380785F4f466D5C71361F3A2823BCe2d6d87BB90",
+      "phase": "submitted",
+      "txHash": "0xf1ec6852da10ff1505d314f6ef25ec803f1766049d7cbb9b3ef3351e2c608a03",
+      "nonce": 18,
+      "outcome": {
+        "kind": "finalized_failure",
+        "detail": "transaction reverted; no tokens moved",
+        "reason": "evm_reverted",
+        "evidence": {
+          "txHash": "0xf1ec6852da10ff1505d314f6ef25ec803f1766049d7cbb9b3ef3351e2c608a03",
+          "provider": "portaldot-v3-evm-rpc",
+          "blockHash": "0xbb570fa2acc64edc537141626b549f992e864ed074db5f68165b3cd17f7f8878",
+          "finalized": true,
+          "observedAt": "2026-11-05T21:47:44.931Z",
+          "blockNumber": "340151"
+        }
+      },
+      "preparedAt": "2026-11-05T21:47:19.091Z",
+      "submittedAt": "2026-11-05T21:47:20.921Z",
+      "finalizedAt": "2026-11-05T21:47:44.931Z"
+    },
+    {
+      "id": "att_5uymgz9g49f1x3dtx9an",
+      "obligationId": "0xfa2b817da0c9e5c6da5d09f24500835db5fdb2fc764a1293c6ad4a063ec0affb",
+      "attemptNumber": 2,
+      "source": "app",
+      "environment": "evm",
+      "payer": "0x380785F4f466D5C71361F3A2823BCe2d6d87BB90",
+      "phase": "submitted",
+      "txHash": "0xc95237da72895d52f55076e622477bf2ce1b17719d48b3f585ca09806bfc8d16",
+      "nonce": 20,
+      "outcome": {
+        "kind": "finalized_success",
+        "evidence": {
+          "txHash": "0xc95237da72895d52f55076e622477bf2ce1b17719d48b3f585ca09806bfc8d16",
+          "logIndex": 5,
+          "provider": "portaldot-v3-evm-rpc",
+          "blockHash": "0x73606ec5ca6c8d597fdb1e36a59f0e09aa524d13761120b76ab7337ff363db7a",
+          "finalized": true,
+          "observedAt": "2026-11-05T21:48:24.466Z",
+          "blockNumber": "340158"
+        },
+        "transfers": [
+          {
+            "to": "0xf1B1d33860A8B99ABB05A7f76d7346e07DFA27bD",
+            "from": "0x380785F4f466D5C71361F3A2823BCe2d6d87BB90",
+            "assetId": "0x07f843390b48470347Cb435451cB26DE798A1330",
+            "environment": "evm",
+            "obligationId": "0xfa2b817da0c9e5c6da5d09f24500835db5fdb2fc764a1293c6ad4a063ec0affb",
+            "manifestDigest": "sha256:ee8b748e02d19d8d4b37f9e1bdbef5bbab4b4a15a38951c1509ba75bc411b8e3",
+            "amountBaseUnits": "40500000"
+          }
+        ]
+      },
+      "preparedAt": "2026-11-05T21:48:01.036Z",
+      "submittedAt": "2026-11-05T21:48:05.017Z",
+      "finalizedAt": "2026-11-05T21:48:24.466Z"
+    }
+  ],
+  "observations": [
+    {
+      "attemptId": "att_04jg8ih1g53kt1yi7frn",
+      "provider": "portaldot-v3-node",
+      "outcomeKind": "pending",
+      "blockHash": null,
+      "blockNumber": null,
+      "extrinsicIndex": null,
+      "logIndex": null,
+      "finalized": false,
+      "observedAt": "2026-11-05T21:46:19.378Z"
+    },
+    {
+      "attemptId": "att_04jg8ih1g53kt1yi7frn",
+      "provider": "portaldot-v3-node",
+      "outcomeKind": "finalized_success",
+      "blockHash": "0x42fb413ec647f99725c3d06088f8b947d5b9845e8aa51f08de2c7be6af5b3793",
+      "blockNumber": "340141",
+      "extrinsicIndex": 1,
+      "logIndex": null,
+      "finalized": true,
+      "observedAt": "2026-11-05T21:46:43.189Z"
+    },
+    {
+      "attemptId": "att_cfm12ee2nz0txt90nfdx",
+      "provider": "portaldot-v3-node",
+      "outcomeKind": "finalized_success",
+      "blockHash": "0xf6e10bb7a4dbac659ccd0854efa4ecd607f4aba4622463661a1b9c6bc7f4705c",
+      "blockNumber": "340143",
+      "extrinsicIndex": 1,
+      "logIndex": null,
+      "finalized": true,
+      "observedAt": "2026-11-05T21:46:50.258Z"
+    },
+    {
+      "attemptId": "att_fq51hqstqbz5ky1i89sa",
+      "provider": "portaldot-v3-evm-rpc",
+      "outcomeKind": "unknown",
+      "blockHash": null,
+      "blockNumber": null,
+      "extrinsicIndex": null,
+      "logIndex": null,
+      "finalized": false,
+      "observedAt": "2026-11-05T21:47:02.361Z"
+    },
+    {
+      "attemptId": "att_fq51hqstqbz5ky1i89sa",
+      "provider": "portaldot-v3-evm-rpc",
+      "outcomeKind": "finalized_success",
+      "blockHash": "0x6262afd904cb3af709f665ac14a5a0ed9441062ee61da8e404c9dba08091987f",
+      "blockNumber": "340148",
+      "extrinsicIndex": null,
+      "logIndex": 4,
+      "finalized": true,
+      "observedAt": "2026-11-05T21:47:21.584Z"
+    },
+    {
+      "attemptId": "att_pm79jdr3dgmjn6zs1a6z",
+      "provider": "portaldot-v3-evm-rpc",
+      "outcomeKind": "unknown",
+      "blockHash": null,
+      "blockNumber": null,
+      "extrinsicIndex": null,
+      "logIndex": null,
+      "finalized": false,
+      "observedAt": "2026-11-05T21:47:23.998Z"
+    },
+    {
+      "attemptId": "att_pm79jdr3dgmjn6zs1a6z",
+      "provider": "portaldot-v3-evm-rpc",
+      "outcomeKind": "included",
+      "blockHash": "0xbb570fa2acc64edc537141626b549f992e864ed074db5f68165b3cd17f7f8878",
+      "blockNumber": "340151",
+      "extrinsicIndex": null,
+      "logIndex": null,
+      "finalized": false,
+      "observedAt": "2026-11-05T21:47:25.885Z"
+    },
+    {
+      "attemptId": "att_pm79jdr3dgmjn6zs1a6z",
+      "provider": "portaldot-v3-evm-rpc",
+      "outcomeKind": "included",
+      "blockHash": "0xbb570fa2acc64edc537141626b549f992e864ed074db5f68165b3cd17f7f8878",
+      "blockNumber": "340151",
+      "extrinsicIndex": null,
+      "logIndex": null,
+      "finalized": false,
+      "observedAt": "2026-11-05T21:47:28.528Z"
+    },
+    {
+      "attemptId": "att_0d6s5nqm1vh3b9kn49rh",
+      "provider": "portaldot-v3-evm-rpc",
+      "outcomeKind": "unknown",
+      "blockHash": null,
+      "blockNumber": null,
+      "extrinsicIndex": null,
+      "logIndex": null,
+      "finalized": false,
+      "observedAt": "2026-11-05T21:47:28.533Z"
+    },
+    {
+      "attemptId": "att_pm79jdr3dgmjn6zs1a6z",
+      "provider": "portaldot-v3-evm-rpc",
+      "outcomeKind": "included",
+      "blockHash": "0xbb570fa2acc64edc537141626b549f992e864ed074db5f68165b3cd17f7f8878",
+      "blockNumber": "340151",
+      "extrinsicIndex": null,
+      "logIndex": null,
+      "finalized": false,
+      "observedAt": "2026-11-05T21:47:36.240Z"
+    },
+    {
+      "attemptId": "att_pm79jdr3dgmjn6zs1a6z",
+      "provider": "portaldot-v3-evm-rpc",
+      "outcomeKind": "finalized_failure",
+      "blockHash": "0xbb570fa2acc64edc537141626b549f992e864ed074db5f68165b3cd17f7f8878",
+      "blockNumber": "340151",
+      "extrinsicIndex": null,
+      "logIndex": null,
+      "finalized": true,
+      "observedAt": "2026-11-05T21:47:44.931Z"
+    },
+    {
+      "attemptId": "att_5uymgz9g49f1x3dtx9an",
+      "provider": "portaldot-v3-evm-rpc",
+      "outcomeKind": "unknown",
+      "blockHash": null,
+      "blockNumber": null,
+      "extrinsicIndex": null,
+      "logIndex": null,
+      "finalized": false,
+      "observedAt": "2026-11-05T21:48:06.290Z"
+    },
+    {
+      "attemptId": "att_5uymgz9g49f1x3dtx9an",
+      "provider": "portaldot-v3-evm-rpc",
+      "outcomeKind": "included",
+      "blockHash": "0x73606ec5ca6c8d597fdb1e36a59f0e09aa524d13761120b76ab7337ff363db7a",
+      "blockNumber": "340158",
+      "extrinsicIndex": null,
+      "logIndex": 5,
+      "finalized": false,
+      "observedAt": "2026-11-05T21:48:15.165Z"
+    },
+    {
+      "attemptId": "att_5uymgz9g49f1x3dtx9an",
+      "provider": "portaldot-v3-evm-rpc",
+      "outcomeKind": "finalized_success",
+      "blockHash": "0x73606ec5ca6c8d597fdb1e36a59f0e09aa524d13761120b76ab7337ff363db7a",
+      "blockNumber": "340158",
+      "extrinsicIndex": null,
+      "logIndex": 5,
+      "finalized": true,
+      "observedAt": "2026-11-05T21:48:24.466Z"
+    }
+  ],
+  "network": {
+    "evm": {
+      "chainId": 420420777,
+      "executorAddress": "0x09a46d341cBB557b84311aAA8A95cB40992464e1"
+    },
+    "native": {
+      "genesisHash": "0xd4f9acbcf7f52388d8b095abe3c198d19fc510e0343e643e87cfbccb155283bd",
+      "specName": "portaldot-v3",
+      "specVersion": 3002,
+      "ss58Prefix": 42,
+      "tokenDecimals": 14,
+      "tokenSymbol": "tPOT"
+    }
+  },
+  "knownLimitations": [
+    "Approval is recorded off-chain in the application; it is not an on-chain multi-party authorisation.",
+    "The executor manifestDigest is an audit correlation value, not proof that the manifest was approved.",
+    "Native and EVM transfers settle independently; there is no atomicity across environments.",
+    "Transfers made outside Payout Replay are only counted when their transaction reference is imported and verified.",
+    "manually_resolved lines carry no on-chain proof and remain outstanding in the settled totals.",
+    "Portaldot V3 testnet only. Contracts are unaudited."
+  ]
+}

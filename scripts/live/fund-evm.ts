@@ -4,7 +4,7 @@
 import { createPublicClient, formatEther, http } from 'viem';
 
 import { EVM_RPC_URL, loadKeys } from './env.js';
-import { connectNative, nativePair, signTransfer, waitForFinalized } from './native.js';
+import { connectNative, nativePair, signTransfer, waitForFinalizedNonce } from './native.js';
 
 const amount = BigInt(Math.round(Number(process.env.AMOUNT_TPOT ?? '20') * 1e4)) * 10n ** 10n;
 const keys = loadKeys();
@@ -18,7 +18,7 @@ try {
   console.log(`signed ${signed.txHash}, nonce ${signed.nonce}`);
   const { blockHash } = await signed.send();
   console.log(`included in ${blockHash}`);
-  const waited = await waitForFinalized(api, blockHash);
+  const waited = await waitForFinalizedNonce(api, pair.address, signed.nonce);
   console.log(`finalized after ${waited}ms`);
 } finally {
   await api.disconnect();

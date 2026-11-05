@@ -57,17 +57,17 @@ export async function signTransfer(api: ApiPromise, pair: KeyringPair, dest: str
   };
 }
 
-export async function waitForFinalized(api: ApiPromise, blockHash: string, timeoutMs = 180_000): Promise<number> {
-  const target = (await api.rpc.chain.getHeader(blockHash)).number.toNumber();
+/**
+ * Waits until the sender's nonce is consumed at the finalized head. The block
+ * that first reported inclusion can be reorged away while the same extrinsic
+ * lands in a sibling, so the block hash is not a reliable handle.
+ */
+export async function waitForFinalizedNonce(api: ApiPromise, sender: string, nonce: number, timeoutMs = 180_000): Promise<number> {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
-    const finalized = (await api.rpc.chain.getHeader(await api.rpc.chain.getFinalizedHead())).number.toNumber();
-    if (finalized >= target) {
-      const canonical = await api.rpc.chain.getBlockHash(target);
-      if (canonical.toHex() !== blockHash) throw new Error(`block ${blockHash} was replaced at #${target}`);
-      return Date.now() - started;
-    }
+    const finalized = await api.at(await api.rpc.chain.getFinalizedHead());
+    if ((await finalized.query.system.account(sender)).nonce.toNumber() > nonce) return Date.now() - started;
     await new Promise((resolve) => setTimeout(resolve, 3_000));
   }
-  throw new Error(`block ${blockHash} not finalized within ${timeoutMs}ms`);
+  throw new Error(`nonce ${nonce} of ${sender} not consumed at the finalized head within ${timeoutMs}ms`);
 }

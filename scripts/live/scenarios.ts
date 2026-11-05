@@ -100,6 +100,25 @@ async function sendEvm(to: Hex, data: Hex): Promise<{ hash: Hex; nonce: number }
   return { hash, nonce };
 }
 
+// Revive meters storage deposits as gas, so a fixed EVM-style limit like 3M is
+// rejected outright. Transactions that must revert on-chain (S3, the duplicate)
+// cannot be estimated, so they reuse the limit measured on the successful S2.
+let executeGas: bigint | undefined;
+function revertingExecuteGas(): bigint {
+  if (executeGas === undefined) throw new Error('S2 must run first to size the gas for reverting executes');
+  return executeGas;
+}
+
+// Recipients are reused across runs, so balance checks compare deltas, never absolutes.
+function tokenBalance(owner: Hex): Promise<bigint> {
+  return evmReader.readContract({
+    address: deployment.token,
+    abi: [{ type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ type: 'address' }], outputs: [{ type: 'uint256' }] }],
+    functionName: 'balanceOf',
+    args: [owner],
+  });
+}
+
 const results: { id: string; name: string; expected: string; observed: string; pass: boolean; refs: string[] }[] = [];
 function record(id: string, name: string, expected: string, observed: string, pass: boolean, refs: string[]): void {
   results.push({ id, name, expected, observed, pass, refs });
@@ -182,9 +201,11 @@ try {
       note(`${lineId} allowance reset to 0 out of band by ${revoke.hash} (forces an on-chain revert)`);
     }
     const attempt = await call<{ id: string }>('POST', `/runs/${run.id}/attempts`, { planId, obligationId: line.obligationId });
-    const sent = await evmWallet.sendTransaction({ to: transfer!.payload.execute.to, data: transfer!.payload.execute.data, gas: 3_000_000n }).then(
-      async (hash) => ({ hash, nonce: (await evmReader.getTransaction({ hash })).nonce }),
-    );
+    const { to, data } = transfer!.payload.execute;
+    if (!options.revokeAllowanceFirst) executeGas = ((await evmReader.estimateGas({ account: evmAccount, to, data })) * 3n) / 2n;
+    // revive's eth-rpc only knows a transaction once it is in a block, so the nonce is fixed before sending.
+    const nonce = await evmReader.getTransactionCount({ address: evmAccount.address, blockTag: 'pending' });
+    const sent = { hash: await evmWallet.sendTransaction({ to, data, gas: revertingExecuteGas(), nonce }), nonce };
     await call('POST', `/attempts/${attempt.id}/result`, { phase: 'submitted', txHash: sent.hash, nonce: sent.nonce });
     note(`${lineId} executePayment ${sent.hash} (nonce ${sent.nonce})`);
     return sent.hash;
@@ -192,6 +213,7 @@ try {
   await payEvm('S2');
 
   // S3: a payment that reverts on-chain because its allowance was revoked out of band.
+  const s3RecipientBefore = await tokenBalance(evmB!);
   await payEvm('S3', { revokeAllowanceFirst: true });
 
   // S5: controlled failure injection. The attempt is opened and reported as
@@ -231,13 +253,8 @@ try {
   await payEvm('S3');
   const corrected = await waitForStatuses(run.id, { S3: 'paid_verified' });
   const s3 = corrected.find((line) => line.lineId === 'S3')!;
-  const recipientBalance = await evmReader.readContract({
-    address: deployment.token,
-    abi: [{ type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ type: 'address' }], outputs: [{ type: 'uint256' }] }],
-    functionName: 'balanceOf',
-    args: [evmB!],
-  });
-  record('S4', 'safe correction', 'S3 paid exactly once through the executor', `${s3.status}; recipient balance ${recipientBalance} base units`, s3.status === 'paid_verified' && recipientBalance === 40_500_000n, evidenceOf(s3));
+  const s3Received = (await tokenBalance(evmB!)) - s3RecipientBefore;
+  record('S4', 'safe correction', 'S3 paid exactly once through the executor', `${s3.status}; recipient received ${s3Received} base units`, s3.status === 'paid_verified' && s3Received === 40_500_000n, evidenceOf(s3));
 
   // S6: call the executor directly with S2's obligation ID again.
   const s2 = get('S2');
@@ -260,20 +277,16 @@ try {
     args: [deployment.executor, 25_000_000n],
   });
   await evmReader.waitForTransactionReceipt({ hash: (await sendEvm(deployment.token, approveAgain)).hash, timeout: 180_000 });
-  const duplicate = await evmWallet.sendTransaction({ to: deployment.executor, data: duplicateData, gas: 3_000_000n });
+  const s2RecipientBefore = await tokenBalance(evmA!);
+  const duplicate = await evmWallet.sendTransaction({ to: deployment.executor, data: duplicateData, gas: revertingExecuteGas() });
   const duplicateReceipt = await evmReader.waitForTransactionReceipt({ hash: duplicate, timeout: 180_000 });
-  const recipientA = await evmReader.readContract({
-    address: deployment.token,
-    abi: [{ type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ type: 'address' }], outputs: [{ type: 'uint256' }] }],
-    functionName: 'balanceOf',
-    args: [evmA!],
-  });
+  const duplicateMoved = (await tokenBalance(evmA!)) - s2RecipientBefore;
   record(
     'S6',
     'duplicate payment ID',
     'on-chain revert, no second transfer',
-    `receipt ${duplicateReceipt.status}; recipient balance ${recipientA} base units`,
-    duplicateReceipt.status === 'reverted' && recipientA === 25_000_000n,
+    `receipt ${duplicateReceipt.status}; recipient balance moved by ${duplicateMoved} base units`,
+    duplicateReceipt.status === 'reverted' && duplicateMoved === 0n,
     [`${duplicate} @ block ${duplicateReceipt.blockNumber}`],
   );
 

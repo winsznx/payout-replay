@@ -41,10 +41,16 @@ async function confirm(label: string, hash: Hex) {
 
 const executorArtifact = artifact('PayoutExecutor');
 const tokenArtifact = artifact('TestToken');
-const executorReceipt = await confirm(
-  'deploy PayoutExecutor',
-  await wallet.deployContract({ abi: executorArtifact.abi, bytecode: executorArtifact.bytecode, args: [account.address] }),
-);
+// Each deploy costs ~250 tPOT in revive code deposits, so a rerun after a partial
+// failure reuses the executor by its deploy tx: EXECUTOR_DEPLOY_TX=0x… pnpm deploy
+const existingExecutorTx = process.env.EXECUTOR_DEPLOY_TX as Hex | undefined;
+const executorReceipt = existingExecutorTx
+  ? await confirm('deploy PayoutExecutor', existingExecutorTx)
+  : await confirm(
+      'deploy PayoutExecutor',
+      await wallet.deployContract({ abi: executorArtifact.abi, bytecode: executorArtifact.bytecode, args: [account.address] }),
+    );
+if (existingExecutorTx && getAddress(executorReceipt.from) !== account.address) throw new Error('executor was deployed by another key');
 const tokenReceipt = await confirm(
   'deploy TestToken',
   await wallet.deployContract({ abi: tokenArtifact.abi, bytecode: tokenArtifact.bytecode, args: [account.address] }),

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { Wordmark } from '@/components/brand';
+import { HowItWorks } from '@/components/how-it-works';
 import {
   IconAlert,
   IconArrowRight,
@@ -19,14 +20,6 @@ import {
 
 import './app/app.css';
 import './marketing.css';
-
-const SEQUENCE = [
-  { title: 'Import the approved sheet', body: 'Every address, asset and decimal is checked line by line.' },
-  { title: 'Freeze and approve', body: 'A reviewer approves one exact SHA-256 fingerprint.' },
-  { title: 'Sign from your own wallet', body: 'Native tPOT and EVM tokens, one line at a time.' },
-  { title: 'Verify against finality', body: 'Paid only when a finalised block proves the exact transfer.' },
-  { title: 'Recover only what failed', body: 'Uncertain lines stay blocked, so nobody is paid twice.' },
-];
 
 function Pill({ tone, children }: { tone: 'settled' | 'failed' | 'review'; children: string }) {
   return (
@@ -227,25 +220,7 @@ export default function Landing() {
                 answer to “did they get paid?” is evidence, not memory.
               </p>
             </div>
-            <div className="solutions">
-              <div className="seq">
-                {SEQUENCE.map((item, index) => (
-                  <div key={item.title} className={`seq-item ${index === 2 ? 'active' : ''}`}>
-                    <b>{String(index + 1).padStart(2, '0')}</b>
-                    <div>
-                      <strong>{item.title}</strong>
-                      <p>{item.body}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="sky solutions-art">
-                <div className="glass">
-                  <strong>64</strong>
-                  <span>blocks. Every native payment is signed with a mortal era, so “never landed” becomes provable instead of a guess.</span>
-                </div>
-              </div>
-            </div>
+            <HowItWorks />
           </div>
         </section>
 

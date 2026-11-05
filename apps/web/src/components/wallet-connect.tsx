@@ -67,7 +67,7 @@ export function WalletConnect({ onDone, link = false }: { onDone(): void; link?:
           </span>
           <div className="app-row-body">
             <strong>Portaldot wallet</strong>
-            <span>Polkadot.js, Talisman or SubWallet for native tPOT</span>
+            <span>Portaldot extension, Polkadot.js, Talisman or SubWallet for native tPOT</span>
           </div>
           <Button variant="secondary" size="sm" busy={busy === 'native' && !nativeAccounts} onClick={() => void listNative()}>
             {`${verb} Portaldot wallet`}

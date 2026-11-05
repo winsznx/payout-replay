@@ -29,16 +29,27 @@ export async function connectNative(): Promise<NativeAccount[]> {
   const { web3Accounts, web3Enable } = await import('@polkadot/extension-dapp');
   const extensions = await web3Enable(APP_NAME);
   if (extensions.length === 0) {
-    throw new Error('No Polkadot-compatible extension found. Install Polkadot.js, Talisman or SubWallet and allow this site.');
+    throw new Error('No Polkadot-compatible extension found. Install the Portaldot extension, Polkadot.js, Talisman or SubWallet and allow this site.');
   }
   const accounts = await web3Accounts({ ss58Format: 42 });
   return accounts.map((account) => ({ address: account.address, name: account.meta.name, source: account.meta.source }));
 }
 
+/**
+ * extension-dapp forgets enabled extensions on every page load, so each signing
+ * path enables them again before asking for the account's signer.
+ */
+async function injectorFor(address: string) {
+  const { web3Enable, web3FromAddress } = await import('@polkadot/extension-dapp');
+  if ((await web3Enable(APP_NAME)).length === 0) {
+    throw new Error('No Polkadot-compatible extension found. Install the Portaldot extension, Polkadot.js, Talisman or SubWallet and allow this site.');
+  }
+  return web3FromAddress(address);
+}
+
 export async function signNativeMessage(address: string, message: string): Promise<string> {
-  const { web3FromAddress } = await import('@polkadot/extension-dapp');
   const { stringToHex } = await import('@polkadot/util');
-  const injector = await web3FromAddress(address);
+  const injector = await injectorFor(address);
   if (!injector.signer.signRaw) throw new Error('This extension cannot sign messages.');
   const { signature } = await injector.signer.signRaw({ address, data: stringToHex(message), type: 'bytes' });
   return signature;
@@ -68,8 +79,7 @@ export async function sendNativeTransfer(address: string, payload: NativeTransfe
   const tx = api.tx.balances.transferKeepAlive(payload.dest, BigInt(payload.value));
   if (tx.method.toHex() !== payload.callHex) throw new Error('Prepared call and local call differ. Refusing to sign.');
 
-  const { web3FromAddress } = await import('@polkadot/extension-dapp');
-  const injector = await web3FromAddress(address);
+  const injector = await injectorFor(address);
   // Anchor the era on the finalized head: a best-block checkpoint can be
   // reorged away under BABE, which invalidates the signature in the pool.
   const header = await api.rpc.chain.getHeader(await api.rpc.chain.getFinalizedHead());

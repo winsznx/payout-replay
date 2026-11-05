@@ -9,8 +9,9 @@ It is non-custodial. The app never holds keys and never signs. Every payment and
 Built for the Portaldot Hacker House 2026, Ecosystem DApps track.
 
 - App: https://payout-replay.vercel.app
+- Demo video (2:34): https://youtu.be/9N1dcZsTf8w
 - Live V3 evidence: [docs/real-run-results.md](docs/real-run-results.md), produced by running S1 to S7 against that deployment
-- Contracts on Portaldot V3 EVM (chain 420420777): `PayoutExecutor` at `0x09a46d341cBB557b84311aAA8A95cB40992464e1`, TEST TOKEN PRT at `0x07f843390b48470347Cb435451cB26DE798A1330`
+- Contracts and transactions: [On-chain deployment](#on-chain-deployment), with Node Console links and a byte-for-byte source check
 
 ## The rule it is built around
 
@@ -53,6 +54,67 @@ These were verified against the live testnet on 2026-11-04, not taken from docs.
 - [Portaldot Extension](https://chromewebstore.google.com/detail/portaldot-extension/cpdecangbhmfijmlmjglfcocfpaojceo), the official browser wallet. It injects through the standard polkadot.js extension API as `portaldot extension`, so the app's native sign-in, wallet registration and tPOT payments work with it unchanged, alongside Polkadot.js, Talisman and SubWallet.
 - [Node Console](https://node-console.portaldot.dev), the official V3 block explorer. Every native proof the app records (block hash, extrinsic index, nonce) can be looked up there.
 - Any EIP-1193 wallet, such as MetaMask, for the EVM side. The app adds chain 420420777 to the wallet on first use.
+
+## On-chain deployment
+
+Everything below is on the Portaldot V3 testnet. Block links open the official [Node Console](https://node-console.portaldot.dev). EVM transactions on V3 are `revive.eth_transact` extrinsics inside the same native blocks, so one explorer shows both sides.
+
+| Contract | Address (EVM chain 420420777) | Deployed in |
+| --- | --- | --- |
+| PayoutExecutor | `0x09a46d341cBB557b84311aAA8A95cB40992464e1` | tx `0x529ac79279e8e899c188e507e3600f27257cc19e23ab5464dfb34b9aff8476fc`, block [#326175](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/326175) |
+| TEST TOKEN PRT (6 decimals, no value) | `0x07f843390b48470347Cb435451cB26DE798A1330` | tx `0x6e1b37bb7b50e0a46f0834ad8c5f1a1b2aa2f108f3abe7fb302d0fe13cc982f2`, block [#340057](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/340057) |
+
+Setup transactions: token allowlisted on the executor in block [#340058](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/340058) (`0x35d66417…9fa71f502`), demo balance minted in block [#340059](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/340059) (`0x65f50930…d75c9b05f0`).
+
+Payout wallets: native `5G6rYDiHS993CPq4sgSskE7m4UuYUPPZxpS7Lc7LX1Dg5y9g`, EVM `0x380785F4f466D5C71361F3A2823BCe2d6d87BB90` (mapped native account `5DLAmpahUMZjit1jkt2SngGRmtUADDCBxbqNbh1kCxQXHMeL`).
+
+| Live scenario | Transaction | Block | Result |
+| --- | --- | --- | --- |
+| S1 native tPOT payout | `0x97169b560c812931409ee17c30db1c6f53c178be8b33dcef078aac7b5a65eeb2` | [#340484](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/340484) | paid, verified |
+| S2 EVM token payout | `0x26a9f1e862f4544d0cf404762b5e71f1b87882738c8eece97b8706614492863b` | [#340491](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/340491) | paid, verified |
+| S3 payment that reverts | `0xcfbf3ba99f1c70fe48cc8ddd978906a70ae887309807f483aa3b3ff2caa2ce2e` | [#340495](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/340495) | failed, verified |
+| S6 replay of S2's obligation | `0x89ea48a6d51a83b814f818ce832d85839b62204c588e3126e90df14baefb001f` | [#340508](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/340508) | reverted, no second transfer |
+| Browser run, native NOV-01 | `0x2a9a4b696c6dc58449475a3b2d88698e2d5a6619566eb08118e85d3949cfbc5a` | [#340750](https://node-console.portaldot.dev/?rpc=wss%3A%2F%2Ftest-node-v3.portaldot.dev#/explorer/query/340750) | paid, verified |
+
+All eight checks and every hash are in [docs/real-run-results.md](docs/real-run-results.md).
+
+### Source verification
+
+Portaldot V3 has no EVM block explorer with contract verification yet, so the repo verifies the deployment itself. The contracts compile with metadata hashing off (`bytecode_hash = "none"`, `cbor_metadata = false`), which makes the build reproducible, and a script compares the runtime code on chain with the compiled output byte for byte:
+
+```bash
+cd contracts && forge build && cd ..
+pnpm --filter @payout-replay/live verify-contracts
+```
+
+```
+MATCH    PayoutExecutor at 0x09a46d341cBB557b84311aAA8A95cB40992464e1
+         local    0x51eb5a3948cffbfb026d84fd6e09af2dcee1df87d613e56ab9dcefce88289556 (3256 bytes)
+         on-chain 0x51eb5a3948cffbfb026d84fd6e09af2dcee1df87d613e56ab9dcefce88289556 (3256 bytes)
+MATCH    TestToken at 0x07f843390b48470347Cb435451cB26DE798A1330
+         local    0x67734d752ae6b26bb9f7a627bb9798310bf12a97ab9a246442498e5e9680fc28 (2824 bytes)
+         on-chain 0x67734d752ae6b26bb9f7a627bb9798310bf12a97ab9a246442498e5e9680fc28 (2824 bytes)
+```
+
+Compiler: solc 0.8.28, `evm_version = cancun`, optimizer on with 10,000 runs. The API re-reads the executor's code hash on every `/health/chain` check and reports the chain unverified if it ever changes.
+
+## Use the SDK
+
+The SDK isn't on npm yet. Each release on GitHub carries the four packages as tarballs, and npm installs them straight from there:
+
+```bash
+npm install \
+  https://github.com/winsznx/payout-replay/releases/download/v0.1.0/payout-replay-core-0.1.0.tgz \
+  https://github.com/winsznx/payout-replay/releases/download/v0.1.0/payout-replay-adapters-evm-0.1.0.tgz \
+  https://github.com/winsznx/payout-replay/releases/download/v0.1.0/payout-replay-adapters-native-0.1.0.tgz \
+  https://github.com/winsznx/payout-replay/releases/download/v0.1.0/payout-replay-sdk-0.1.0.tgz
+```
+
+```ts
+import { PayoutReplayClient, parseManifest } from '@payout-replay/sdk';
+```
+
+To build them yourself from a clone: `pnpm install && pnpm build`, then `pnpm pack` in each folder under `packages/`. The API reference is in [docs/api.md](docs/api.md) and a worked example in [examples/accounting-sync](examples/accounting-sync).
 
 ## Run it locally
 
@@ -121,6 +183,8 @@ docker compose -f infra/deploy/compose.yml --env-file infra/deploy/.env up -d --
 The web app is on Vercel with `apps/web` as the root directory and `API_URL` pointing at the API. Next rewrites proxy `/api/v1` and `/health` to it, so the browser only talks to the Vercel origin and the session cookie stays first-party.
 
 ## Third-party code
+
+Built from scratch during the Portaldot Hacker House, October 14 to November 6, 2026. No earlier project was reused.
 
 OpenZeppelin Contracts 5.x (Ownable2Step, SafeERC20, ReentrancyGuard), forge-std, polkadot.js (`@polkadot/api`, `util`, `util-crypto`, `extension-dapp`), viem, Hono, Drizzle ORM, postgres.js, zod, jose, Next.js, React, SWR, Tailwind CSS and puppeteer-core for the browser test. All are used through their published packages under their own licences.
 

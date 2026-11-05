@@ -3,6 +3,23 @@
   "version": "0.1.0",
   "description": "Portaldot V3 EVM (pallet-revive) adapter for Payout Replay: PayoutExecutor calls and receipt verification",
   "license": "MIT",
+  "author": "winsznx",
+  "homepage": "https://github.com/winsznx/payout-replay#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/winsznx/payout-replay.git",
+    "directory": "packages/adapters-evm"
+  },
+  "bugs": {
+    "url": "https://github.com/winsznx/payout-replay/issues"
+  },
+  "keywords": [
+    "payouts",
+    "evm",
+    "pallet-revive",
+    "portaldot",
+    "viem"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,6 +32,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",

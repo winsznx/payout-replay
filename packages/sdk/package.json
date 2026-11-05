@@ -3,6 +3,26 @@
   "version": "0.1.0",
   "description": "TypeScript SDK for Payout Replay: manifest validation, reconciliation, recovery planning, chain adapters and a typed REST client",
   "license": "MIT",
+  "author": "winsznx",
+  "homepage": "https://github.com/winsznx/payout-replay#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/winsznx/payout-replay.git",
+    "directory": "packages/sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/winsznx/payout-replay/issues"
+  },
+  "keywords": [
+    "payouts",
+    "reconciliation",
+    "treasury",
+    "dao",
+    "portaldot",
+    "substrate",
+    "evm",
+    "sdk"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,6 +35,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",

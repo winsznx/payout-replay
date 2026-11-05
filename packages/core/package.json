@@ -3,6 +3,23 @@
   "version": "0.1.0",
   "description": "Manifest canonicalisation, reconciliation and fail-closed recovery planning for Payout Replay",
   "license": "MIT",
+  "author": "winsznx",
+  "homepage": "https://github.com/winsznx/payout-replay#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/winsznx/payout-replay.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/winsznx/payout-replay/issues"
+  },
+  "keywords": [
+    "payouts",
+    "reconciliation",
+    "treasury",
+    "dao",
+    "portaldot"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,6 +32,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",

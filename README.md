@@ -101,21 +101,15 @@ Compiler: solc 0.8.28, `evm_version = cancun`, optimizer on with 10,000 runs. Th
 
 ## Use the SDK
 
-The SDK isn't on npm yet. Each release on GitHub carries the four packages as tarballs, and npm installs them straight from there:
-
 ```bash
-npm install \
-  https://github.com/winsznx/payout-replay/releases/download/v0.1.0/payout-replay-core-0.1.0.tgz \
-  https://github.com/winsznx/payout-replay/releases/download/v0.1.0/payout-replay-adapters-evm-0.1.0.tgz \
-  https://github.com/winsznx/payout-replay/releases/download/v0.1.0/payout-replay-adapters-native-0.1.0.tgz \
-  https://github.com/winsznx/payout-replay/releases/download/v0.1.0/payout-replay-sdk-0.1.0.tgz
+npm install @payout-replay/sdk
 ```
 
 ```ts
-import { PayoutReplayClient, parseManifest } from '@payout-replay/sdk';
+import { PayoutReplayClient, NativeAdapter, parseManifest } from '@payout-replay/sdk';
 ```
 
-To build them yourself from a clone: `pnpm install && pnpm build`, then `pnpm pack` in each folder under `packages/`. The API reference is in [docs/api.md](docs/api.md) and a worked example in [examples/accounting-sync](examples/accounting-sync).
+It brings in `@payout-replay/core` and both chain adapters. To build from a clone instead: `pnpm install && pnpm build`. The API reference is in [docs/api.md](docs/api.md) and a worked example in [examples/accounting-sync](examples/accounting-sync).
 
 ## Run it locally
 

@@ -3,6 +3,22 @@
   "version": "0.1.0",
   "description": "Portaldot V3 native runtime adapter for Payout Replay: transfer_keep_alive extrinsics and event-attributed proof",
   "license": "MIT",
+  "author": "winsznx",
+  "homepage": "https://github.com/winsznx/payout-replay#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/winsznx/payout-replay.git",
+    "directory": "packages/adapters-native"
+  },
+  "bugs": {
+    "url": "https://github.com/winsznx/payout-replay/issues"
+  },
+  "keywords": [
+    "payouts",
+    "substrate",
+    "polkadot-js",
+    "portaldot"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,6 +31,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",

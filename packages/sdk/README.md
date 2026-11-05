@@ -4,15 +4,11 @@ TypeScript SDK for [Payout Replay](https://github.com/winsznx/payout-replay): ma
 
 ## Install
 
-Not published to npm yet. Install the release tarballs, which carry the packages this one depends on:
-
 ```bash
-npm install \
-  https://github.com/winsznx/payout-replay/releases/download/v0.1.0/payout-replay-core-0.1.0.tgz \
-  https://github.com/winsznx/payout-replay/releases/download/v0.1.0/payout-replay-adapters-evm-0.1.0.tgz \
-  https://github.com/winsznx/payout-replay/releases/download/v0.1.0/payout-replay-adapters-native-0.1.0.tgz \
-  https://github.com/winsznx/payout-replay/releases/download/v0.1.0/payout-replay-sdk-0.1.0.tgz
+npm install @payout-replay/sdk
 ```
+
+It brings in `@payout-replay/core`, `@payout-replay/adapters-evm` and `@payout-replay/adapters-native`.
 
 ## Use
 

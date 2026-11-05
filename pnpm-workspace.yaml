@@ -4,3 +4,7 @@ packages:
   - contracts
   - examples/*
   - scripts/live
+
+# pnpm 12 fails CI installs on unapproved build scripts. esbuild's only checks its platform binary.
+allowBuilds:
+  esbuild: true

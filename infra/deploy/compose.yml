@@ -1,0 +1,38 @@
+# Production API on a shared VPS. Postgres has no host port; only the API is
+# published. The web app on Vercel proxies /api/v1 here, so browsers only ever
+# talk to the Vercel origin.
+#   docker compose -f infra/deploy/compose.yml --env-file infra/deploy/.env up -d --build
+name: payout-replay
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: payout_replay
+      POSTGRES_USER: payout_replay
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payout_replay -d payout_replay"]
+      interval: 5s
+      retries: 12
+
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/deploy/api.Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://payout_replay:${POSTGRES_PASSWORD}@db:5432/payout_replay
+      PORT: 8787
+    ports:
+      - "${API_PUBLIC_PORT:-8790}:8787"
+
+volumes:
+  db:

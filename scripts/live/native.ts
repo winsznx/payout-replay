@@ -32,7 +32,9 @@ export interface SignedNative {
  */
 export async function signTransfer(api: ApiPromise, pair: KeyringPair, dest: string, value: bigint, period = 64): Promise<SignedNative> {
   const tx = api.tx.balances.transferKeepAlive(dest, value);
-  const header = await api.rpc.chain.getHeader();
+  // Anchor the era on the finalized head: a best-block checkpoint can be
+  // reorged away under BABE, which invalidates the signature in the pool.
+  const header = await api.rpc.chain.getHeader(await api.rpc.chain.getFinalizedHead());
   const current = header.number.toNumber();
   const era = api.registry.createType('ExtrinsicEra', { current, period });
   const nonce = (await api.rpc.system.accountNextIndex(pair.address)).toNumber();

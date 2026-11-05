@@ -70,7 +70,9 @@ export async function sendNativeTransfer(address: string, payload: NativeTransfe
 
   const { web3FromAddress } = await import('@polkadot/extension-dapp');
   const injector = await web3FromAddress(address);
-  const header = await api.rpc.chain.getHeader();
+  // Anchor the era on the finalized head: a best-block checkpoint can be
+  // reorged away under BABE, which invalidates the signature in the pool.
+  const header = await api.rpc.chain.getHeader(await api.rpc.chain.getFinalizedHead());
   const current = header.number.toNumber();
   const era = api.registry.createType('ExtrinsicEra', { current, period: payload.eraPeriod });
   const nonce = (await api.rpc.system.accountNextIndex(address)).toNumber();

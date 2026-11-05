@@ -9,7 +9,8 @@
     "keys": "tsx keys.ts",
     "fund-evm": "tsx fund-evm.ts",
     "scenarios": "tsx scenarios.ts",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "verify-contracts": "tsx verify-contracts.ts"
   },
   "dependencies": {
     "@payout-replay/adapters-evm": "workspace:*",

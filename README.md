@@ -46,6 +46,13 @@ These were verified against the live testnet on 2026-11-04, not taken from docs.
 - `Balances.transfer` does not exist on V3. Payouts use `Balances.transfer_keep_alive`, which is present in the live metadata.
 - EVM RPC `https://test-evm-rpc-v3.portaldot.dev`, chain ID 420420777. This is the pallet-revive eth-rpc proxy, not Frontier. PUSH0, MCOPY and TSTORE execute, but blob opcodes don't, so the contracts compile for `cancun` with no blob use.
 - An EVM address's tPOT lives in its mapped native account (`h160` followed by twelve `0xEE` bytes when unmapped). The live tooling checks this against `ReviveApi.account_id`.
+- Contract deploys are expensive: revive charges 0.06 tPOT per byte of stored code plus a 30% code-hash lockup, so each of our two contracts cost about 250 tPOT.
+
+## Portaldot tools it works with
+
+- [Portaldot Extension](https://chromewebstore.google.com/detail/portaldot-extension/cpdecangbhmfijmlmjglfcocfpaojceo), the official browser wallet. It injects through the standard polkadot.js extension API as `portaldot extension`, so the app's native sign-in, wallet registration and tPOT payments work with it unchanged, alongside Polkadot.js, Talisman and SubWallet.
+- [Node Console](https://node-console.portaldot.dev), the official V3 block explorer. Every native proof the app records (block hash, extrinsic index, nonce) can be looked up there.
+- Any EIP-1193 wallet, such as MetaMask, for the EVM side. The app adds chain 420420777 to the wallet on first use.
 
 ## Run it locally
 
@@ -83,7 +90,10 @@ PORTALDOT_LIVE=1 pnpm --filter @payout-replay/adapters-native test   # read-only
 pnpm --filter @payout-replay/api test              # API end-to-end on Postgres + anvil: S2 to S7, isolation, idempotency, CSRF, DB immutability
 pnpm --filter @payout-replay/sdk test
 TOKEN=0x… EXECUTOR=0x… pnpm --filter @payout-replay/web e2e   # real browser run in Chrome against the local stack
+WEB_URL=https://payout-replay.vercel.app node apps/web/e2e/production-flow.mjs   # the deployed app on V3, see below
 ```
+
+`production-flow.mjs` drives the deployed app in Chrome through a whole run on Portaldot V3: wallet sign-in and registration, CSV import, freeze and approval, a native tPOT payment and two EVM token payments, one of which reverts on-chain, recovery of only that line, and the export. Its wallets are a test harness that signs with the testnet keys in `internal/`, standing in for the extension popups; every transaction is real. The last passing run is `pr_ash15eez9sabt55gex8f` on 2026-11-05.
 
 Fixture data in tests is labelled as such. Anvil runs prove the code paths. Only [docs/real-run-results.md](docs/real-run-results.md) counts as Portaldot evidence.
 

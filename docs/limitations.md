@@ -25,4 +25,5 @@ What Payout Replay does not do or cannot prove today. Each item is a deliberate 
 ## Safety
 
 - Testnet only. The contracts have a Foundry suite but no external audit.
+- The hop from Vercel to the API is plain HTTP to the VPS on port 8790. Browsers only see HTTPS on the Vercel origin, but session cookies and signed challenges cross that hop unencrypted. Ports 80 and 443 on the shared VPS belong to another project, and the project has no domain to complete a DNS challenge with. A domain with a certificate on the API, or a tunnel, fixes this before anything beyond testnet.
 - Fee-on-transfer and rebasing tokens revert in the executor, because it checks the recipient's balance delta. Only allowlisted tokens are accepted.

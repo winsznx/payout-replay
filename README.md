@@ -8,6 +8,10 @@ It is non-custodial. The app never holds keys and never signs. Every payment and
 
 Built for the Portaldot Hacker House 2026, Ecosystem DApps track.
 
+- App: https://payout-replay.vercel.app
+- Live V3 evidence: [docs/real-run-results.md](docs/real-run-results.md), produced by running S1 to S7 against that deployment
+- Contracts on Portaldot V3 EVM (chain 420420777): `PayoutExecutor` at `0x09a46d341cBB557b84311aAA8A95cB40992464e1`, TEST TOKEN PRT at `0x07f843390b48470347Cb435451cB26DE798A1330`
+
 ## The rule it is built around
 
 An approved line, a submitted transaction and a verified settlement are three different things. A timed-out RPC call, a lost wallet response or a missing local record never means a recipient wasn't paid. When Payout Replay can't prove what happened to a payment, it says so and refuses to offer it again.
@@ -88,11 +92,23 @@ Fixture data in tests is labelled as such. Anvil runs prove the code paths. Only
 ```bash
 pnpm --filter @payout-replay/live keys        # testnet-only keys into internal/ (gitignored)
 # fund the printed native address with tPOT, then:
-AMOUNT_TPOT=20 pnpm --filter @payout-replay/live fund-evm
+AMOUNT_TPOT=360 pnpm --filter @payout-replay/live fund-evm   # each contract deploy costs ~250 tPOT in revive code deposits
 pnpm --filter @payout-replay/live exec tsx deploy.ts
 # start the API with the V3 EVM settings and the deployed addresses, then:
-pnpm --filter @payout-replay/live scenarios   # writes docs/real-run-results.md
+API_URL=https://payout-replay.vercel.app WEB_ORIGIN=https://payout-replay.vercel.app \
+  pnpm --filter @payout-replay/live scenarios   # writes docs/real-run-results.md
 ```
+
+## Deployment
+
+The API and its Postgres run with Docker Compose on a VPS ([infra/deploy](infra/deploy)). Postgres has no published port, and migrations run when the API starts.
+
+```bash
+cp infra/deploy/.env.example infra/deploy/.env   # fill POSTGRES_PASSWORD and SESSION_SECRET
+docker compose -f infra/deploy/compose.yml --env-file infra/deploy/.env up -d --build
+```
+
+The web app is on Vercel with `apps/web` as the root directory and `API_URL` pointing at the API. Next rewrites proxy `/api/v1` and `/health` to it, so the browser only talks to the Vercel origin and the session cookie stays first-party.
 
 ## Third-party code
 

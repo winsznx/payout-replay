@@ -9,7 +9,7 @@
 | Repository | https://github.com/winsznx/payout-replay (public, MIT) |
 | Live app | https://payout-replay.vercel.app |
 | Demo video | https://youtu.be/9N1dcZsTf8w (2:34) |
-| Pitch deck | https://claude.ai/artifact/HkuUkmoWLkf7BTVV39tZMq |
+| Pitch deck | https://payout-replay.vercel.app/deck.pdf |
 | Built | October 14 to November 6, 2026, from scratch; see the commit history |
 
 ## Portaldot integration

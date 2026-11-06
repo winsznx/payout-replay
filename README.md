@@ -10,6 +10,7 @@ Built for the Portaldot Hacker House 2026, Ecosystem DApps track.
 
 - App: https://payout-replay.vercel.app
 - Demo video (2:34): https://youtu.be/9N1dcZsTf8w
+- Pitch deck: https://payout-replay.vercel.app/deck.pdf
 - Submission sheet: [docs/submission.md](docs/submission.md)
 - Live V3 evidence: [docs/real-run-results.md](docs/real-run-results.md), produced by running S1 to S7 against that deployment
 - Contracts and transactions: [On-chain deployment](#on-chain-deployment), with Node Console links and a byte-for-byte source check
